@@ -20,9 +20,13 @@ df = pd.read_csv("gap_21_22.csv")
 # Filter the top 12 cities based on the absolute value of the change to keep the plot clean
 df['abs_gap'] = df['물동량_변화량'].abs()
 
+type_mapping = {
+    '출발': 'departure',
+    '도착': 'arrival'
+}
 # Separate visualization for '출발' (Departure) and '도착' (Arrival)
-for g_type in ['출발', '도착']:
-    type_data = df[df['구분'] == g_type]
+for kor_type, eng_type in type_mapping.items():
+    type_data = df[df['구분'] == kor_type]
     
     if type_data.empty:
         continue
@@ -65,11 +69,11 @@ for g_type in ['출발', '도착']:
     )
     
     plt.axvline(0, color='black', linestyle='--', linewidth=1) # Reference line at 0
-    plt.title(f"2021 vs 2022 Cargo Volume Change by Major Cities ({g_type})", fontsize=15, pad=15)
+    plt.title(f"2021 vs 2022 Cargo Volume Change by Major Cities ({eng_type})", fontsize=15, pad=15)
     plt.xlabel("Change in Cargo Volume (2022 - 2021)", fontsize=11)
     plt.ylabel("City", fontsize=11)
     # plt.grid(axis='x', linestyle='--', alpha=0.5)
     
     plt.tight_layout()
-    plt.savefig(f"gap_{g_type}.png", dpi=300)
+    plt.savefig(f"gap_{eng_type}.png", dpi=300)
     plt.close()
