@@ -1,4 +1,4 @@
--- check the sum of 물동량 for each region and verify that the total percentage adds up to 100%
+-- Calculate regional cargo volumes and verify if the total percentage equals 100%
 select 연도, 구분,
     SUM(CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 물동량 ELSE 0 END) AS 수도권_물동량,
     SUM(CASE WHEN 대상지역 IN ('부산', '울산', '경남') THEN 물동량 ELSE 0 END) AS 영남권_물동량,
@@ -17,7 +17,7 @@ from data_logistics_cleaned
 group by 연도, 구분
 ORDER BY 연도, 구분 DESC;
 
--- find any 대상지역 that are not included in the defined regions
+-- find any target regions that are not included in the defined regions
 select distinct 대상지역
 from data_logistics_cleaned
 where 대상지역 not in(
