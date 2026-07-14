@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -15,7 +16,7 @@ region_bg_colors = {
 }
 
 # Load the query result
-df = pd.read_csv("NLIC/data/gap_21_22.csv")
+df = pd.read_csv("NLIC/data/gap_22_23.csv")
 
 # Filter the top 12 cities based on the absolute value of the change to keep the plot clean
 df['abs_gap'] = df['물동량_변화량'].abs()
@@ -69,11 +70,15 @@ for kor_type, eng_type in type_mapping.items():
     )
     
     plt.axvline(0, color='black', linestyle='--', linewidth=1) # Reference line at 0
-    plt.title(f"2021 vs 2022 Cargo Volume Change by Major Cities ({eng_type})", fontsize=15, pad=15)
-    plt.xlabel("Change in Cargo Volume (2022 - 2021)", fontsize=11)
+    plt.title(f"2022 vs 2023 Cargo Volume Change by Major Cities ({eng_type})", fontsize=15, pad=15)
+    plt.xlabel("Change in Cargo Volume (2023 - 2022)", fontsize=11)
     plt.ylabel("City", fontsize=11)
     # plt.grid(axis='x', linestyle='--', alpha=0.5)
     
+    save_dir = "NLIC/output"
+
     plt.tight_layout()
-    plt.savefig(f"gap_{eng_type}_21-22.png", dpi=300)
+    save_path = os.path.join(save_dir, f"gap_{eng_type}_22-23.png")
+    
+    plt.savefig(save_path, dpi=300)
     plt.close()
