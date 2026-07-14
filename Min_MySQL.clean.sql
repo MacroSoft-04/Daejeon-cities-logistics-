@@ -1,1 +1,0 @@
-DROP TABLE data_logistics_total;
