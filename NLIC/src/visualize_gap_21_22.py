@@ -75,5 +75,5 @@ for kor_type, eng_type in type_mapping.items():
     # plt.grid(axis='x', linestyle='--', alpha=0.5)
     
     plt.tight_layout()
-    plt.savefig(f"gap_{eng_type}.png", dpi=300)
+    plt.savefig(f"gap_{eng_type}_21-22.png", dpi=300)
     plt.close()
