@@ -75,10 +75,11 @@ for kor_type, eng_type in type_mapping.items():
     plt.ylabel("City", fontsize=11)
     # plt.grid(axis='x', linestyle='--', alpha=0.5)
     
-    save_dir = "NLIC/output"
+    save_dir = "NLIC/output" # Change this to the desired directory
 
     plt.tight_layout()
-    save_path = os.path.join(save_dir, f"gap_{eng_type}_22-23.png")
+    save_path = os.path.join(save_dir, f"gap_{eng_type}_22-23.jpg")
     
-    plt.savefig(save_path, dpi=300)
+    # 수정 후 코드
+    plt.savefig(save_path, dpi=300, pil_kwargs={'quality': 95})
     plt.close()

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -73,7 +74,12 @@ for kor_type, eng_type in type_mapping.items():
     plt.xlabel("Change in Cargo Volume (2022 - 2021)", fontsize=11)
     plt.ylabel("City", fontsize=11)
     # plt.grid(axis='x', linestyle='--', alpha=0.5)
+
+    save_dir = "NLIC/output" # Change this to the desired directory
     
     plt.tight_layout()
-    plt.savefig(f"gap_{eng_type}_21-22.png", dpi=300)
+    save_path = os.path.join(save_dir,f"gap_{eng_type}_21-22.jpg")
+
+    # 수정 후 코드
+    plt.savefig(save_path, dpi=300, pil_kwargs={'quality': 95})
     plt.close()
