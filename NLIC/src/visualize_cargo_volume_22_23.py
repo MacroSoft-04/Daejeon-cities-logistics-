@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib.ticker import FuncFormatter
 import seaborn as sns
 
@@ -71,9 +72,26 @@ for year, filename in target_files.items():
             y='도시_권역', 
             hue='도시_권역', 
             palette=colors,
-            legend=False, 
             ax=ax
         )
+
+        
+        active_regions = plot_data['권역'].unique()
+        legend_handles = []
+        for region in active_regions:
+            if region in region_colors:
+                patch = mpatches.Patch(color=region_colors[region], label=region)
+                legend_handles.append(patch)
+        ax.legend(
+            handles=legend_handles, 
+            title='권역', 
+            bbox_to_anchor=(1.05, 1), 
+            loc='upper left', 
+            borderaxespad=0.,
+            frameon=True,
+            facecolor = 'white',
+            edgecolor = 'gray')  # Set the legend title and location
+        
 
         plt.axvline(0, color='black', linestyle='--', linewidth=1) 
         plt.title(f"{year} Cargo Volume by Major Cities ({eng_type})", fontsize=15, pad=15)
