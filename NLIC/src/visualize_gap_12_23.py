@@ -107,8 +107,8 @@ for year, filename in target_files.items():
         )
         
         plt.axvline(0, color='black', linestyle='--', linewidth=1) # Reference line at 0
-        plt.title(f"2021 vs 2022 Cargo Volume Change by Major Cities ({eng_type})", fontsize=15, pad=15)
-        plt.xlabel("Change in Cargo Volume (2022 - 2021)", fontsize=11)
+        plt.title(f"{str(year)} vs {str(year+1)} Cargo Volume Change by Major Cities ({eng_type})", fontsize=15, pad=15)
+        plt.xlabel(f"Change in Cargo Volume ({str(year)[2:]} - {str(year+1)[2:]})", fontsize=11)
         plt.ylabel("City", fontsize=11)
 
         # plt.grid(axis='x', linestyle='--', alpha=0.5)
