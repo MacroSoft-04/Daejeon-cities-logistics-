@@ -121,19 +121,19 @@ for year, filename in target_files.items():
         ax.grid(axis='x', linestyle='--', alpha=0.5, zorder=0)
 
         for p in ax.patches: # Add data labels to the bars in the axis
-            if not isinstance(p, plt.Rectangle): # filter real bar
-                continue
             width = p.get_width()
-            if abs(width) < 1000: # consider minimal figure error, skip if width is 0
+            if abs(width) < 1.1: # consider minimal figure error, skip if width is 0
                 continue
             y_pos = p.get_y() + p.get_height()/2.
-            label_text = f'{width/1000000:.1f}만'
+            label_text = f'{width/1000000:.2f}만'
             if width > 0:
                 x_pos = width + (max(plot_data['물동량_변화량']) * 0.01)
                 ha_align = 'left' 
-            else:
+            elif width < 0:
                 x_pos = width - (max(plot_data['물동량_변화량']) * 0.01)
                 ha_align = 'right'
+            else:
+                continue
             ax.text(x_pos, y_pos, label_text,va = "center", ha=ha_align, fontsize=9, color = "black")
 
         plt.tight_layout()
