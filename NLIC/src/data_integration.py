@@ -1,6 +1,6 @@
 import pandas as pd
 
-years = ['2020', '2021', '2022', '2023']
+years = ['2019', '2020', '2021', '2022', '2023']
 df_list = []
 
 #append each year's DataFrame to the list

@@ -19,7 +19,7 @@ url = "https://www.nlic.go.kr/nlic/frghtRoad0010.action"
 driver.get(url)
 time.sleep(3)  # await for the page to load
 
-target_years = ["2020", "2021", "2022", "2023"]  # list of target years
+target_years = ["2019","2020", "2021", "2022", "2023"]  # list of target years
 
 # Loop through each target year and process the data
 for year in target_years:
