@@ -1,11 +1,16 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
+
+base_dir = Path(".")
+data_dir = base_dir / "NLIC" / "data"
+save_dir = base_dir / "NLIC" / "output"
 
 plt.rcParams['font.family'] = 'Malgun Gothic'  # Set font to Malgun Gothic for Korean characters
 plt.rcParams['axes.unicode_minus'] = False  # Ensure minus sign is displayed correctly
 
-df = pd.read_csv('yearly_total_amount.csv')  # Load the data from a CSV file
+df = pd.read_csv(data_dir / "yearly_total_amount.csv")  # Load the data from a CSV file
 
 df['총 출발량(백만)'] = df['총 출발량'] / 1_000_000  # Convert total departure amount to millions
 df['총 도착량(백만)'] = df['총 도착량'] / 1_000_000  # Convert total arrival amount to millions
@@ -47,4 +52,4 @@ for p in ax2.patches: # Add data labels to the bars in the second axis
     if height > 0:
         ax2.text(p.get_x() + p.get_width()/2., height + 0.1, f'{height:.1f}', ha="center", fontsize=9)
 
-plt.savefig('yearly_total_amount.png', dpi=300, bbox_inches='tight')  # Save the plot as a PNG file
+plt.savefig(save_dir/'yearly_total_amount.png', dpi=300, bbox_inches='tight')  # Save the plot as a PNG file
