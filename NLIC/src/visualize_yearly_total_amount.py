@@ -1,55 +1,144 @@
-import pandas as pd
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
+import pandas as pd
 
+# 1. File path configuration
 base_dir = Path(".")
 data_dir = base_dir / "NLIC" / "data"
 save_dir = base_dir / "NLIC" / "output"
+save_dir.mkdir(parents=True, exist_ok=True)
 
-plt.rcParams['font.family'] = 'Malgun Gothic'  # Set font to Malgun Gothic for Korean characters
-plt.rcParams['axes.unicode_minus'] = False  # Ensure minus sign is displayed correctly
+# Korean font setup
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
 
-df = pd.read_csv(data_dir / "yearly_total_amount.csv")  # Load the data from a CSV file
+# 2. Load data and convert units (to Millions)
+df = pd.read_csv(data_dir / "yearly_total_amount.csv")
+df["총 출발량(백만)"] = df["총 출발량"] / 1_000_000
+df["총 도착량(백만)"] = df["총 도착량"] / 1_000_000
 
-df['총 출발량(백만)'] = df['총 출발량'] / 1_000_000  # Convert total departure amount to millions
-df['총 도착량(백만)'] = df['총 도착량'] / 1_000_000  # Convert total arrival amount to millions
+# 3. Multilingual configuration dictionary
+I18N = {
+    "ko": {
+        "title_main": "연도별 총 출발량 및 총 도착량",
+        "xlabel": "연도",
+        "ylabel_1": "총 출발량 (백만 단위)",
+        "ylabel_2": "총 도착량 (백만 단위)",
+        "label_dep": "총 출발량(백만)",
+        "label_arr": "총 도착량(백만)",
+        "legend_title": "구분",
+        "filename": "yearly_total_amount_ko.jpg",
+        "year_fmt": lambda yr: f"{yr}년",
+    },
+    "en": {
+        "title_main": "Yearly Total Departure & Arrival Freight Amount",
+        "xlabel": "Year",
+        "ylabel_1": "Total Departure (Millions)",
+        "ylabel_2": "Total Arrival (Millions)",
+        "label_dep": "Departure Amount",
+        "label_arr": "Arrival Amount",
+        "legend_title": "Category",
+        "filename": "yearly_total_amount_en.jpg",
+        "year_fmt": lambda yr: f"{yr}yr",
+    },
+}
 
-fig, ax1 = plt.subplots(figsize=(10, 5))  # Create a figure and axis with specified size
-ax2 = ax1.twinx()  # Create a secondary y-axis sharing the same x-axis
 
-ax1.set_ylim(0, 12)
-ax2.set_ylim(15, 23)
+# 4. Multilingual plot generation function
+def generate_multilingual_plots(df, save_dir):
+    for lang in ["ko", "en"]:
+        cfg = I18N[lang]
 
-x = np.arange(len(df['연도']))  # Create an array of indices for the x-axis
-width = 0.35  # Set the width of the bars
+        # Configure figure and dual Y-axes
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        ax2 = ax1.twinx()
 
-rect1 = ax1.bar(x - width/2, df['총 출발량(백만)'], width, label='총 출발량(백만)', color='skyblue')  # Plot total departure amount
-rect2 = ax2.bar(x + width/2, df['총 도착량(백만)'], width, label='총 도착량(백만)', color='salmon')  # Plot total arrival amount
+        # Set X-axis indices and bar widths
+        x = np.arange(len(df["연도"]))
+        width = 0.35
+        x_labels = [cfg["year_fmt"](yr) for yr in df["연도"]]
 
-plt.legend(handles=[rect1, rect2], title='구분', bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)  # Set the legend title and location
+        # Plot bar charts (Left: Departure volume, Right: Arrival volume)
+        rect1 = ax1.bar(
+            x - width / 2,
+            df["총 출발량(백만)"],
+            width,
+            label=cfg["label_dep"],
+            color="#87CEEB",
+        )
+        rect2 = ax2.bar(
+            x + width / 2,
+            df["총 도착량(백만)"],
+            width,
+            label=cfg["label_arr"],
+            color="#FA8072",
+        )
 
-plt.title('연도별 총 출발량 및 총 도착량 (백만 단위)', fontsize=16, pad=20)  # Set the title of the plot
-ax1.set_xlabel('연도', fontsize=12)  # Set the x-axis label
-ax1.set_ylabel('총 출발량 (백만 단위)', fontsize=12)  # Set the y-axis label for total departure amount
-ax2.set_ylabel('총 도착량 (백만 단위)', fontsize=12)  # Set the y-axis label
+        # Automatically/Manually adjust Y-axis limits
+        dep_max = df["총 출발량(백만)"].max()
+        arr_max = df["총 도착량(백만)"].max()
+        ax1.set_ylim(0, dep_max * 1.25)
+        ax2.set_ylim(0, arr_max * 1.25)
 
-ax1.set_xticks(x)  # Set the x-ticks to the indices
-ax1.set_xticklabels(df['연도'])  # Set the x
+        # Set axis labels and title
+        plt.title(cfg["title_main"], fontsize=16, pad=20, fontweight="bold")
+        ax1.set_xlabel(cfg["xlabel"], fontsize=12)
+        ax1.set_ylabel(cfg["ylabel_1"], fontsize=12, color="#2E8B57")
+        ax2.set_ylabel(cfg["ylabel_2"], fontsize=12, color="#CD5C5C")
 
-ax1.grid(axis='y', linestyle='--', alpha=0.5)  # Add grid lines to the y-axis
+        # Apply X-axis tick labels
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(x_labels, fontsize=11)
+        ax1.grid(axis="y", linestyle="--", alpha=0.4)
 
-lines1, labels1 = ax1.get_legend_handles_labels()  # Get the legend handles and labels for the first axis
-lines2, labels2 = ax2.get_legend_handles_labels()  # Get the legend
+        # Annotate data values on top of bars
+        for p in ax1.patches:
+            height = p.get_height()
+            if height > 0:
+                ax1.text(
+                    p.get_x() + p.get_width() / 2.0,
+                    height + (dep_max * 0.02),
+                    f"{height:.1f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                    fontweight="bold",
+                )
 
-for p in ax1.patches: # Add data labels to the bars in the first axis
-    height = p.get_height()
-    if height > 0:
-        ax1.text(p.get_x() + p.get_width()/2., height + 0.2, f'{height:.1f}', ha="center", fontsize=9)
+        for p in ax2.patches:
+            height = p.get_height()
+            if height > 0:
+                ax2.text(
+                    p.get_x() + p.get_width() / 2.0,
+                    height + (arr_max * 0.02),
+                    f"{height:.1f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                    fontweight="bold",
+                )
 
-for p in ax2.patches: # Add data labels to the bars in the second axis
-    height = p.get_height()
-    if height > 0:
-        ax2.text(p.get_x() + p.get_width()/2., height + 0.1, f'{height:.1f}', ha="center", fontsize=9)
+        # Combine legends from both axes
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(
+            lines1 + lines2,
+            labels1 + labels2,
+            title=cfg["legend_title"],
+            loc="upper left",
+            bbox_to_anchor=(1.08, 1.0),
+            borderaxespad=0.0,
+            fontsize=10,
+        )
 
-plt.savefig(save_dir/'yearly_total_amount.png', dpi=300, bbox_inches='tight')  # Save the plot as a PNG file
+        # Save image
+        save_path = save_dir / cfg["filename"]
+        plt.savefig(
+            save_path, dpi=300, bbox_inches="tight", pad_inches=0.3
+        )
+        plt.close()
+
+
+# 5. Execute function
+generate_multilingual_plots(df, save_dir)

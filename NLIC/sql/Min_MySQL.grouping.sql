@@ -28,8 +28,10 @@ where 대상지역 not in(
     '강원', '제주'
 );
 
--- finally, calculate the 물동량 and percentage for each region
-select 연도, 구분,
+SELECT 
+    연도, 
+    구분,
+    -- freight volume & percentage (Korean Columns)
     SUM(CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 물동량 ELSE 0 END) AS 수도권_물동량,
     SUM(CASE WHEN 대상지역 IN ('부산', '울산', '경남', '대구', '경북') THEN 물동량 ELSE 0 END) AS 영남권_물동량,
     SUM(CASE WHEN 대상지역 IN ('대전', '세종', '충남', '충북') THEN 물동량 ELSE 0 END) AS 충청권_물동량,
@@ -40,7 +42,21 @@ select 연도, 구분,
     ROUND(SUM(CASE WHEN 대상지역 IN ('부산', '울산', '경남', '대구', '경북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS 영남권_비율,
     ROUND(SUM(CASE WHEN 대상지역 IN ('대전', '세종', '충남', '충북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS 충청권_비율,
     ROUND(SUM(CASE WHEN 대상지역 IN ('광주', '전남', '전북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS 호남권_비율,
-    ROUND(SUM(CASE WHEN 대상지역 IN ('강원', '제주') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS 기타_비율
-from data_logistics_cleaned
-group by 연도, 구분
+    ROUND(SUM(CASE WHEN 대상지역 IN ('강원', '제주') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS 기타_비율,
+
+    -- freight volume & percentage (English Columns)
+    SUM(CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 물동량 ELSE 0 END) AS Capital_Area_vol,
+    SUM(CASE WHEN 대상지역 IN ('부산', '울산', '경남', '대구', '경북') THEN 물동량 ELSE 0 END) AS Yeongnam_vol,
+    SUM(CASE WHEN 대상지역 IN ('대전', '세종', '충남', '충북') THEN 물동량 ELSE 0 END) AS Chungcheong_vol,
+    SUM(CASE WHEN 대상지역 IN ('광주', '전남', '전북') THEN 물동량 ELSE 0 END) AS Honam_vol,
+    SUM(CASE WHEN 대상지역 IN ('강원', '제주') THEN 물동량 ELSE 0 END) AS Others_vol,
+
+    ROUND(SUM(CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS Capital_Area_ratio,
+    ROUND(SUM(CASE WHEN 대상지역 IN ('부산', '울산', '경남', '대구', '경북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS Yeongnam_ratio,
+    ROUND(SUM(CASE WHEN 대상지역 IN ('대전', '세종', '충남', '충북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS Chungcheong_ratio,
+    ROUND(SUM(CASE WHEN 대상지역 IN ('광주', '전남', '전북') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS Honam_ratio,
+    ROUND(SUM(CASE WHEN 대상지역 IN ('강원', '제주') THEN 물동량 ELSE 0 END) / SUM(물동량) * 100, 2) AS Others_ratio
+
+FROM data_logistics_cleaned
+GROUP BY 연도, 구분
 ORDER BY 연도, 구분 DESC;
