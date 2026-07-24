@@ -17,7 +17,7 @@ I18N = {
         "title": "[KOTI] 주요 권역별 화물자동차 OD 통행 비율 (%)",
         "xlabel": "도착지 (Destination)",
         "ylabel": "출발지 (Origin)",
-        "caption": "* 출처: 한국교통연구원(KOTI) 『제5권 전국 화물 OD 본조사』\n* 대전-수도권 직접 연계율은 0.1% 미만으로, 대전 물량 감소는 충청권 내부 거점 재편이 주원인임.",
+        "caption": "* 출처: 한국교통연구원(KOTI) 『제5권 전국 화물 OD 본조사』(2022)",
         "filename": "koti_od_heatmap_ko.jpg",
     },
     "en": {
@@ -25,7 +25,7 @@ I18N = {
         "title": "[KOTI] Freight Truck OD Traffic Ratio by Major Region (%)",
         "xlabel": "Destination",
         "ylabel": "Origin",
-        "caption": "* Source: KOTI 『The 5th National Freight OD Survey』\n* Direct linkage between Daejeon and the Capital Area is <0.1%, indicating intra-regional hub restructuring.",
+        "caption": "* Source: KOTI 『The 5th National Freight OD Survey』(2022)",
         "filename": "koti_od_heatmap_en.jpg",
     },
 }
@@ -63,7 +63,7 @@ for lang in ["ko", "en"]:
 
     ax.text(
         0.0,
-        -0.22,
+        -0.1,
         cfg["caption"],
         transform=ax.transAxes,
         fontsize=9,
@@ -74,7 +74,7 @@ for lang in ["ko", "en"]:
     )
 
     plt.tight_layout()
-    save_path = save_dir / cfg["filename"]
+    save_path = save_dir / f"2022_{cfg['filename']}"
     plt.savefig(
         save_path, dpi=300, bbox_inches="tight", pil_kwargs={"quality": 95}
     )
