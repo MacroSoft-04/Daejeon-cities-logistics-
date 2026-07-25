@@ -17,7 +17,7 @@ df = pd.read_csv(raw_csv_path)
 if "COMPANY_ADDRESS" in df.columns:
     df["SIDO"] = df["COMPANY_ADDRESS"].fillna("").astype(str).str.split().str[0]
 
-pattern = r"\(?\s*(주|유|합|자)\s*\)?|주식회사|유한회사|합자회사|합명회사|식회사|한회사"
+pattern = r"\(?\s*(주|유|합|자)\s*\)?|주식회사|유한회사|합자회사|합명회사|식회사|한회사|틱스"
 
 if "COMPANY_NAME" in df.columns:
     df["COMPANY_NAME_CLEAN"] = (
