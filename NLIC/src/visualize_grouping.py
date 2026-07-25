@@ -124,6 +124,7 @@ def generate_multilingual_plots(df, save_dir):
                 weight="bold",
             )
             ax.set_xlabel(cfg["xlabel"], fontsize=12)
+            ax.xaxis.set_label_coords(0.5, -0.1)
             ax.set_ylabel(cfg["ylabel"], fontsize=12)
             ax.set_xticks(range(len(plot_df)))
             ax.set_xticklabels(plot_df.index, rotation=0)
