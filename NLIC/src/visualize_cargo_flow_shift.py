@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pandas as pd
 import seaborn as sns
+import numpy as np
 
 # Korean font setup & minus sign display
 plt.rcParams["font.family"] = "Malgun Gothic"
@@ -23,13 +24,13 @@ data_map = {
 highlight_map = {
     "ko": {
         ("21_22", "출발"): ["대전"],
-        ("21_22", "도착"): ["서울", "경기", "대전"],
+        ("21_22", "도착"): ["수도권(서울/경기)", "대전"],
         ("22_23", "출발"): ["대전"],
         ("22_23", "도착"): ["충남"],
     },
     "en": {
         ("21_22", "출발"): ["Daejeon"],
-        ("21_22", "도착"): ["Seoul", "Gyeonggi", "Daejeon"],
+        ("21_22", "도착"): ["Capital Area (Seoul/Gyeonggi)", "Daejeon"],
         ("22_23", "출발"): ["Daejeon"],
         ("22_23", "도착"): ["Chungnam"],
     },
@@ -92,9 +93,21 @@ for lang in ["ko", "en"]:
             c_col = cfg["city_col"]
             r_col = cfg["region_col"]
 
-            plot_data["도시_권역"] = (
-                plot_data[c_col] + "(" + plot_data[r_col] + ")"
+            # Apply region label in parentheses only if the city is NOT '수도권(서울/경기)'
+            # Apply region label in parentheses only if the city is NOT '수도권(서울/경기)'
+            plot_data["도시_권역"] = np.where(
+                plot_data[c_col] == "수도권(서울/경기)",
+                plot_data[c_col],  # Keep as '수도권(서울/경기)' without attaching region again
+                plot_data[c_col] + "(" + plot_data[r_col] + ")"  # e.g., '대전(충청권)'
             )
+
+            # English version column (if using English labels for charts/plots)
+            plot_data["도시_권역"] = np.where(
+                plot_data[c_col] == "Capital Area (Seoul/Gyeonggi)",
+                plot_data[c_col],
+                plot_data[c_col] + " (" + plot_data[r_col] + ")"
+            )
+
             plot_data["도시_권역"] = plot_data["도시_권역"].str.replace(
                 cfg["etc_replace"][0], cfg["etc_replace"][1], regex=True
             )
