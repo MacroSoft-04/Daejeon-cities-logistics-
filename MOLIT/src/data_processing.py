@@ -6,7 +6,7 @@ import re
 current_dir = Path(__file__).resolve().parent
 data_dir = current_dir.parent / "data"
 
-raw_csv_path = data_dir / "domestic_wh_reg_raw.csv"
+raw_csv_path = data_dir / "domestic_wh_raw.csv"
 processed_csv_path = data_dir / "processed_wh_info.csv"
 
 # 2. read data
@@ -17,17 +17,6 @@ df = pd.read_csv(raw_csv_path)
 # extract first word in COMPANY_ADDRESS
 if "COMPANY_ADDRESS" in df.columns:
     df["SIDO"] = df["COMPANY_ADDRESS"].fillna("").astype(str).str.split().str[0]
-
-pattern = r"\([^)]*\)|주식회사|유한회사|합자회사|합명회사|식회사|한회사|틱스|서비스"
-
-if "COMPANY_NAME" in df.columns:
-    df["COMPANY_NAME_CLEAN"] = (
-    df["COMPANY_NAME"]
-    .fillna("")
-    .astype(str)
-    .str.replace(pattern, "", regex=True) 
-    .str.strip()  
-)
 
 def clean_company_name(name):
     if not isinstance(name, str) or not name.strip():
@@ -41,7 +30,7 @@ def clean_company_name(name):
         return "쿠팡"
 
     # Remove parentheses, company name suffixes, and company name prefixes
-    cleaned = re.sub(r"\([^)]*\)|주식회사|\(주\)|유한회사|합자회사|합명회사", "", name)
+    cleaned = re.sub(r"\([^)]*\)|㈜|주식회사|\(주\)|유한회사|합자회사|합명회사", "", name)
     cleaned = cleaned.strip()
 
     # Extract first word from cleaned string
@@ -56,6 +45,8 @@ def clean_company_name(name):
         return "한진"
     elif "LX" in first_word or "판토스" in first_word:
         return "LX판토스"
+    else: return first_word
+df['COMPANY_NAME_CLEAN'] = df['COMPANY_NAME'].apply(clean_company_name)
     
 # extract YEAR from WARE_NO
 if "WARE_NO" in df.columns:
@@ -76,6 +67,3 @@ for col in numeric_columns:
 # 4. save data
 df.to_csv(processed_csv_path, index=False, encoding="utf-8-sig")
 
-print("\n" + "=" * 60)
-print(f"saved file: {processed_csv_path.resolve()}")
-print("=" * 60)
