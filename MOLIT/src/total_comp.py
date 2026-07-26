@@ -22,31 +22,29 @@ plt.rcParams["axes.unicode_minus"] = False
 # Dictionary structure: "Search Key (Original Korean)": ["English Name", "Korean Display Name", "Primary Brand Color HEX"]
 COMPANY_INFO = {
     # Major Logistics & Fulfillment Companies
-    "롯데글로벌로지스": ["Lotte Global Logistics", "롯데글로벌로지스", "#FF8DB1"],
-    "비지에프로지스": ["BGF Logistics", "비지에프로지스", "#00A859"],
-    "씨제이대한통운": ["CJ Logistics", "CJ대한통운", "#FCA452"],
-    "일죽창고": ["IlJuk Warehouse", "일죽창고", "#4A6572"],
-    "동원로엑스": ["Dongwon LOEX", "동원로엑스", "#2CA02C"],
-    "컬리넥스트마일": ["Kurly Nextmile", "컬리넥스트마일", "#5F0080"],
-    "한솔로지스": ["Hansol Logistics", "한솔로지스", "#34495E"],
-    "진성비에프": ["Jinsung BF", "진성비에프", "#E67E22"],
-    "농협물류": ["NongHyup Logistics", "농협물류", "#00833E"],
-    "용마로지스": ["Yongma Logis", "용마로지스", "#16A085"],
-    "한국농수산식품유통공사": ["aT (Korea Agro-Fisheries)", "한국농수산식품유통공사", "#27AE60"],
-    "한진": ["Hanjin", "한진", "#1F77B4"],
-    "한스에프앤엘": ["Hans F&L", "한스에프앤엘", "#8E44AD"],
-    "오뚜기물류서비스": ["Ottogi Logistics Service", "오뚜기물류서비스", "#FAD43E"],
-    "쿠팡로지스서비스": ["CPLB (Coupang Logistics)", "쿠팡로지스틱스", "#26B3EB"],
-    "쿠팡풀필먼트서비스": ["CFS (Coupang Fulfillment)", "쿠팡풀필먼트", "#8BF96C"],
-    "라인물류시스템": ["Line Logistics System", "라인물류시스템", "#2980B9"],
-    "에스로지스": ["S-Logistics", "에스로지스틱스", "#9B59B6"],
-    "한솔로지스": ["Hansol Logistics", "한솔로지스틱스", "#34495E"],
-    "삼성전로지텍": ["Samsung Electronics Logitech", "삼성전자로지텍", "#034EA2"],
-    "한익스프레스": ["Han Express", "한익스프레스", "#D35400"],
+    "CJ대한통운": ["CJ Logistics", "CJ대한통운"],
+    "롯데글로벌로지스": ["Lotte Global Logistics", "롯데글로벌로지스"],
+    "쿠팡풀필먼트": ["Coupang Fulfillment Services", "쿠팡풀필먼트"],
+    "쿠팡로지스틱스": ["Coupang Logistics Services", "쿠팡로지스틱스"],
+    "지에스네트웍스": ["GS Networks", "지에스네트웍스"],
+    "오뚜기물류서비스": ["Ottogi Logistics Service", "오뚜기물류서비스"],
     
     # Fallback / Exception handling for "Others"
-    "기타": ["Others", "기타", "#E0E0E0"],
+    "기타": ["Others", "기타"],
 }
+
+COLOR_PALETTE = [
+    "#6694C6",  
+    "#F28E2B",  
+    "#E15759",  
+    "#76B7B2",  
+    "#59A14F",  
+    "#EDC948",  
+    "#B07AA1",  
+    "#FF9DA7",  
+    "#9C755F",  
+    "#BAB0AC",  
+]
 
 # Multilingual configuration dictionary
 I18N = {
@@ -68,16 +66,32 @@ I18N = {
     },
 }
 
+class ColorMapper:
+    def __init__(self, palette):
+        self.palette = palette
+        self.color_map = {"기타": "#E0E0E0", "Others": "#E0E0E0"}  
+        self.color_idx = 0
+
+    def get_color(self, comp_name):
+        if comp_name not in self.color_map:
+            # if company name is not in the color map, assign a new color
+            self.color_map[comp_name] = self.palette[self.color_idx % len(self.palette)]
+            self.color_idx += 1
+        return self.color_map[comp_name]
+
+# example: ColorMapper(COLOR_PALETTE)
+color_mapper = ColorMapper(COLOR_PALETTE)
+
 def get_company_info(comp_name, lang='ko'):
     if comp_name in COMPANY_INFO:
-        en_name, ko_name, color = COMPANY_INFO[comp_name]
+        en_name, ko_name = COMPANY_INFO[comp_name]
         name = en_name if lang == "en" else ko_name
-        return name, color
+        return name
     else:
         # Fallback handling for companies not listed in the dictionary
-        return comp_name, "#95A5A6"
-
-# 3. Data Processing Function (기타(Others) 자동 계산 로직 적용)
+        return comp_name
+    
+# 3. Data Processing Function (auto-calculation of 'Others' category)
 def prepare_stacked_data(df_ratio, df_total):
     processed_records = []
     years = sorted(df_ratio["YEAR"].unique())
@@ -85,18 +99,17 @@ def prepare_stacked_data(df_ratio, df_total):
     for yr in years:
         threshold = 10
 
-        # 해당 연도의 전체 등록 건수 가져오기
+        # get total count for the year
         tot_sub = df_total[df_total["YEAR"] == yr]
         total_cnt = tot_sub["REGISTRATION_COUNT"].values[0] if not tot_sub.empty else 0
 
-        # 해당 연도의 상위 기업들 추출 (내림차순 정렬)
+        # upper 5 companies
         top5 = df_ratio[df_ratio["YEAR"] == yr].sort_values(
             by="REGISTRATION_COUNT", ascending=False
         )
         top5_filtered = top5[top5["REGISTRATION_COUNT"] >= threshold]
         top5_sum = 0
 
-        # 상위 1~5위 기업 데이터 생성
         for rank, (_, row) in enumerate(top5_filtered.iterrows(), start=1):
             comp = row["COMPANY_NAME"]
             cnt = row["REGISTRATION_COUNT"]
@@ -113,7 +126,7 @@ def prepare_stacked_data(df_ratio, df_total):
                 }
             )
 
-        # 📌 핵심 수정: 전체 건수에서 Top 5 합을 빼서 'Others' 건수를 구함
+        # calculate 'Others' category
         others_cnt = max(0, total_cnt - top5_sum)
         others_ratio = (others_cnt / total_cnt) * 100 if total_cnt > 0 else 0
 
@@ -126,9 +139,7 @@ def prepare_stacked_data(df_ratio, df_total):
                 "RATIO": others_ratio,
             }
         )
-
     return pd.DataFrame(processed_records)
-
 
 # 4. Plot Function
 def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
@@ -142,9 +153,10 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
         bottoms = np.zeros(len(years))
         categories = ["Top_1", "Top_2", "Top_3", "Top_4", "Top_5", "Others"]
 
-        # 'Others' 영역 높이를 15%로 축소 스케일링
+        # 'Others' category height scaling
         OTHERS_SCALE = 0.15
-
+        
+        # stack bar plot for each category
         for idx, cat in enumerate(categories):
             plot_heights = []
             labels = []
@@ -159,10 +171,10 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
                     cnt = sub["COUNT"].values[0]
                     ratio = sub["RATIO"].values[0]
                     comp = sub["COMPANY_NAME"].values[0]
-                    name, color = get_company_info(comp, lang=lang)
+                    name = get_company_info(comp, lang=lang)
                     h = cnt * OTHERS_SCALE if cat == "Others" else cnt
                     plot_heights.append(h)
-                    segment_colors.append(color)
+                    segment_colors.append(color_mapper.get_color(comp))
                     labels.append((name, cnt, ratio))
                 else:
                     plot_heights.append(0)
@@ -171,7 +183,7 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
 
             plot_heights = np.array(plot_heights)
 
-            # Stacked Bar 그리기
+            # Stacked Bar plot
             bars = ax.bar(
                 [f"{yr}yr" if lang == "en" else f"{yr}년" for yr in years],
                 plot_heights,
@@ -182,14 +194,14 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
                 linewidth=0.8,
             )
 
-            # 막대 내부 텍스트 라벨 추가
+            # add inner text labels
             for b_idx, (bar, (comp_name, real_cnt, ratio_val)) in enumerate(
                 zip(bars, labels)
             ):
                 if real_cnt > 0:
                     y_pos = bottoms[b_idx] + (plot_heights[b_idx] / 2.0)
 
-                    if idx < 5:  # Top 1~5 기업 라벨
+                    if idx < 5:  # Top 1~5 companies
                         text_label = f"{comp_name}\n({ratio_val:.1f}%)\n{real_cnt}"
                         ax.text(
                             bar.get_x() + bar.get_width() / 2.0,
@@ -200,7 +212,7 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
                             fontsize=7.5,
                             fontweight="bold",
                             color="black",
-                            linespacing=0.9,
+                            linespacing=1,
                         )
                     else:  # 'Others' 회색 막대 영역 라벨
                         ax.text(
@@ -234,7 +246,7 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
                     color="#111111",
                 )
 
-        # 차트 제목 및 주석 설정
+        # Chart Title & Comment
         title_text = cfg["title"]
         ax.set_title(title_text, fontsize=15, pad=25, fontweight="bold")
 
@@ -247,20 +259,6 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
             color="#666666",
             style="italic",
         )
-
-        # extract top 5 companies from the chart data
-        top_companies = df_stacked[df_stacked["CATEGORY"] != "Others"]["COMPANY_NAME"].unique()
-
-        # create legend handles
-        legend_handles = []
-        for comp in top_companies:
-            display_name, color = get_company_info(comp, lang=lang)
-            # create patch object
-            patch = mpatches.Patch(color=color, label=display_name)
-            legend_handles.append(patch)
-        # add 'Others' patch
-        others_label = "Others" if lang == "en" else "기타"
-        legend_handles.append(mpatches.Patch(color="#E0E0E0", label=others_label))
 
         ax.set_xlabel(cfg["xlabel"], fontsize=11, labelpad=8)
         ax.set_ylabel(cfg["ylabel"], fontsize=11, labelpad=8)
