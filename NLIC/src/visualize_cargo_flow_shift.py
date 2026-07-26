@@ -16,21 +16,21 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. Load Data
 data_map = {
-    "21_22": pd.read_csv(data_dir / "gap_21_22.csv"),
-    "22_23": pd.read_csv(data_dir / "gap_22_23.csv"),
+    "21_22": pd.read_csv(data_dir / "cargo_flow_shift_21_22.csv"),
+    "22_23": pd.read_csv(data_dir / "cargo_flow_shift_22_23.csv"),
 }
 
 # 2. Highlight cities setting for each language, year, and type
 highlight_map = {
     "ko": {
         ("21_22", "출발"): ["대전"],
-        ("21_22", "도착"): ["수도권(서울/경기)", "대전"],
+        ("21_22", "도착"): ["수도권", "대전"],
         ("22_23", "출발"): ["대전"],
         ("22_23", "도착"): ["충남"],
     },
     "en": {
         ("21_22", "출발"): ["Daejeon"],
-        ("21_22", "도착"): ["Capital Area (Seoul/Gyeonggi)", "Daejeon"],
+        ("21_22", "도착"): ["Capital Area", "Daejeon"],
         ("22_23", "출발"): ["Daejeon"],
         ("22_23", "도착"): ["Chungnam"],
     },
@@ -49,6 +49,7 @@ I18N = {
         "etc_replace": (r"기타 \(13개 지자체\)\(기타\)", "기타 (13개 지자체)"),
         "type_map": {"출발": "출발", "도착": "도착"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
+        "info_box": "* Y: 도시 (권역)  |  단위: 만 톤\n* 수도권: 서울/경기/인천 통합",
         "filename": "cargo_flow_shift_dashboard_2x2_ko.jpg",
     },
     "en": {
@@ -62,6 +63,7 @@ I18N = {
         "etc_replace": (r"Others \(13 Local Govs\)\(Others\)", "Others (13 Local Govs)"),
         "type_map": {"출발": "Departure", "도착": "Arrival"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
+        "info_box": "* Y: City (Region)  |  Unit: 10k Tons\n* Capital Area: Seoul/Gyeonggi/Incheon",
         "filename": "cargo_flow_shift_dashboard_2x2_en.jpg",
     },
 }
@@ -96,21 +98,24 @@ for lang in ["ko", "en"]:
             # Apply region label in parentheses only if the city is NOT '수도권(서울/경기)'
             # Apply region label in parentheses only if the city is NOT '수도권(서울/경기)'
             plot_data["도시_권역"] = np.where(
-                plot_data[c_col] == "수도권(서울/경기)",
+                plot_data[c_col] == "수도권",
                 plot_data[c_col],  # Keep as '수도권(서울/경기)' without attaching region again
                 plot_data[c_col] + "(" + plot_data[r_col] + ")"  # e.g., '대전(충청권)'
             )
 
             # English version column (if using English labels for charts/plots)
-            plot_data["도시_권역"] = np.where(
-                plot_data[c_col] == "Capital Area (Seoul/Gyeonggi)",
-                plot_data[c_col],
-                plot_data[c_col] + " (" + plot_data[r_col] + ")"
-            )
-
-            plot_data["도시_권역"] = plot_data["도시_권역"].str.replace(
-                cfg["etc_replace"][0], cfg["etc_replace"][1], regex=True
-            )
+            if lang == "ko":
+                plot_data["도시_권역"] = np.where(
+                    plot_data[c_col] == "수도권",
+                    plot_data[c_col],
+                    plot_data[c_col] + "(" + plot_data[r_col] + ")"
+                )
+            else:
+                plot_data["도시_권역"] = np.where(
+                    plot_data[c_col] == "Capital Area",
+                    plot_data[c_col],
+                    plot_data[c_col] + " (" + plot_data[r_col] + ")"
+                )
             plot_data = plot_data.sort_values(
                 by="gap_vol", ascending=False
             ).reset_index(drop=True)
@@ -127,7 +132,7 @@ for lang in ["ko", "en"]:
                 if city_name in current_highlights:
                     colors.append("#2B5C8F" if val > 0 else "#C44E52")
                 else:
-                    colors.append("#D7B9BA9F")
+                    colors.append("#AFC1D4B8" if val > 0 else "#D7B9BA9F")
 
             # Render Barplot
             sns.barplot(
@@ -187,10 +192,11 @@ for lang in ["ko", "en"]:
             # Top-left info box
             ax.text(
                 0.02,
-                0.92,
+                0.90,
                 cfg["info_box"],
                 transform=ax.transAxes,
                 fontsize=9,
+                linespacing=1.5,
                 color="#444444",
                 fontweight="bold",
                 bbox=dict(

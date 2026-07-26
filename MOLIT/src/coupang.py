@@ -1,9 +1,15 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-# 1. 데이터 불러오기
-df = pd.read_csv("coupang.csv")
+# 1. Path Settings
+base_dir = Path(".")
+data_dir = base_dir / "MOLIT" / "data"
+save_dir = base_dir / "MOLIT" / "output"
+save_dir.mkdir(parents=True, exist_ok=True)
+
+df = pd.read_csv(data_dir / "coupang.csv")
 
 # 2. 행정구역(SIDO)을 5대 주요 권역으로 매핑하는 함수 정의
 def map_region(sido):

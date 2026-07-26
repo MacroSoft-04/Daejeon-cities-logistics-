@@ -1,18 +1,18 @@
--- Cargo volume change amount between 2021 and 2022
+-- Cargo volume change amount between 2021 and 2022 (Capital Area Merged)
 WITH base_gap AS (
     SELECT 
-        -- 1. Combine Seoul and Gyeonggi into 'Capital Area (Seoul/Gyeonggi)', while keeping other local governments as they are
+        -- 1. Combine Seoul, Gyeonggi, and Incheon into '수도권'
         CASE 
-            WHEN 대상지역 IN ('서울', '경기') THEN '수도권(서울/경기)'
+            WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             ELSE 대상지역
         END AS 도시명,
         
         CASE 
-            WHEN 대상지역 IN ('서울', '경기') THEN 'Capital Area (Seoul/Gyeonggi)'
+            WHEN 대상지역 IN ('서울', '경기', '인천') THEN 'Capital Area'
             ELSE 대상지역_en
         END AS 도시명_en,
         
-        -- Region classification (Maintain existing logic)
+        -- Region classification
         CASE 
             WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             WHEN 대상지역 IN ('대전', '세종', '충북', '충남') THEN '충청권'
@@ -39,9 +39,9 @@ WITH base_gap AS (
     WHERE 
         연도 IN (2021, 2022)
     GROUP BY 
-        -- Seoul and Gyeonggi are grouped together as a single city name
-        CASE WHEN 대상지역 IN ('서울', '경기') THEN '수도권(서울/경기)' ELSE 대상지역 END,
-        CASE WHEN 대상지역 IN ('서울', '경기') THEN 'Capital Area (Seoul/Gyeonggi)' ELSE 대상지역_en END,
+        -- Ensure GROUP BY expressions strictly match SELECT expressions
+        CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권' ELSE 대상지역 END,
+        CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 'Capital Area' ELSE 대상지역_en END,
         CASE 
             WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             WHEN 대상지역 IN ('대전', '세종', '충북', '충남') THEN '충청권'
@@ -61,16 +61,16 @@ WITH base_gap AS (
 ranked_gap AS (
     SELECT 
         *,
-        -- Rank by absolute change amount (Calculated with Seoul and Gyeonggi combined)
+        -- Rank by absolute change amount (Calculated with Capital Area combined)
         ROW_NUMBER() OVER (PARTITION BY 구분 ORDER BY ABS(gap_vol) DESC) AS rank_num
     FROM base_gap
 )
--- Display top N cities only; since Seoul/Gyeonggi were merged into 1, modify the group label for remaining local governments
+-- Display top N cities only; 17 regions merged into 15, excluding top 4 leaves 11 remaining
 SELECT 
     구분,
     CASE 
         WHEN rank_num <= 4 THEN 도시명 
-        ELSE '기타 (12개 지자체)'  -- Out of 16 items (17 minus 1 merged), excluding top 4 leaves 12 remaining
+        ELSE '기타 (11개 지자체)' 
     END AS city,
     CASE 
         WHEN rank_num <= 4 THEN 권역 
@@ -82,7 +82,7 @@ SELECT
     END AS region_en,
     CASE 
         WHEN rank_num <= 4 THEN 도시명_en 
-        ELSE 'Others (12 Local Govs)' 
+        ELSE 'Others (11 Local Govs)' 
     END AS city_en,
     SUM(vol_2021) AS total_2021,
     SUM(vol_2022) AS total_2022,
@@ -91,31 +91,31 @@ FROM
     ranked_gap
 GROUP BY 
     구분,
-    CASE WHEN rank_num <= 4 THEN 도시명 ELSE '기타 (12개 지자체)' END,
+    CASE WHEN rank_num <= 4 THEN 도시명 ELSE '기타 (11개 지자체)' END,
     CASE WHEN rank_num <= 4 THEN 권역 ELSE '기타' END,
     CASE WHEN rank_num <= 4 THEN region_en ELSE 'Others' END,
-    CASE WHEN rank_num <= 4 THEN 도시명_en ELSE 'Others (12 Local Govs)' END
+    CASE WHEN rank_num <= 4 THEN 도시명_en ELSE 'Others (11 Local Govs)' END
 ORDER BY 
     구분 ASC, 
     ABS(SUM(gap_vol)) DESC;
 
 
 
--- Cargo volume change amount between 2022 and 2023
+-- Cargo volume change amount between 2022 and 2023 (Capital Area Merged)
 WITH base_gap AS (
     SELECT 
-        -- 1. Combine Seoul and Gyeonggi into 'Capital Area (Seoul/Gyeonggi)'
+        -- 1. Combine Seoul, Gyeonggi, and Incheon into '수도권'
         CASE 
-            WHEN 대상지역 IN ('서울', '경기') THEN '수도권(서울/경기)'
+            WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             ELSE 대상지역
         END AS 도시명,
         
         CASE 
-            WHEN 대상지역 IN ('서울', '경기') THEN 'Capital Area (Seoul/Gyeonggi)'
+            WHEN 대상지역 IN ('서울', '경기', '인천') THEN 'Capital Area'
             ELSE 대상지역_en
         END AS 도시명_en,
         
-        -- Region classification (Capital Area / Chungcheong / Yeongnam / Honam / Others)
+        -- Region classification
         CASE 
             WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             WHEN 대상지역 IN ('대전', '세종', '충북', '충남') THEN '충청권'
@@ -142,9 +142,9 @@ WITH base_gap AS (
     WHERE 
         연도 IN (2022, 2023)
     GROUP BY 
-        -- Seoul and Gyeonggi are aggregated into a single group
-        CASE WHEN 대상지역 IN ('서울', '경기') THEN '수도권(서울/경기)' ELSE 대상지역 END,
-        CASE WHEN 대상지역 IN ('서울', '경기') THEN 'Capital Area (Seoul/Gyeonggi)' ELSE 대상지역_en END,
+        -- Ensure GROUP BY expressions strictly match SELECT expressions
+        CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권' ELSE 대상지역 END,
+        CASE WHEN 대상지역 IN ('서울', '경기', '인천') THEN 'Capital Area' ELSE 대상지역_en END,
         CASE 
             WHEN 대상지역 IN ('서울', '경기', '인천') THEN '수도권'
             WHEN 대상지역 IN ('대전', '세종', '충북', '충남') THEN '충청권'
@@ -164,16 +164,16 @@ WITH base_gap AS (
 ranked_gap AS (
     SELECT 
         *,
-        -- Rank by absolute change amount with Seoul and Gyeonggi combined
+        -- Rank by absolute change amount with Capital Area combined
         ROW_NUMBER() OVER (PARTITION BY 구분 ORDER BY ABS(gap_vol) DESC) AS rank_num
     FROM base_gap
 )
--- Display top 4 local governments and group the remaining 12 local governments
+-- Display top 4 local governments and group the remaining 11 local governments
 SELECT 
     구분,
     CASE 
         WHEN rank_num <= 4 THEN 도시명 
-        ELSE '기타 (12개 지자체)' 
+        ELSE '기타 (11개 지자체)' 
     END AS city,
     CASE 
         WHEN rank_num <= 4 THEN 권역 
@@ -185,7 +185,7 @@ SELECT
     END AS region_en,
     CASE 
         WHEN rank_num <= 4 THEN 도시명_en 
-        ELSE 'Others (12 Local Govs)' 
+        ELSE 'Others (11 Local Govs)' 
     END AS city_en,
     SUM(vol_2022) AS total_2022,
     SUM(vol_2023) AS total_2023,
@@ -194,10 +194,10 @@ FROM
     ranked_gap
 GROUP BY 
     구분,
-    CASE WHEN rank_num <= 4 THEN 도시명 ELSE '기타 (12개 지자체)' END,
+    CASE WHEN rank_num <= 4 THEN 도시명 ELSE '기타 (11개 지자체)' END,
     CASE WHEN rank_num <= 4 THEN 권역 ELSE '기타' END,
     CASE WHEN rank_num <= 4 THEN region_en ELSE 'Others' END,
-    CASE WHEN rank_num <= 4 THEN 도시명_en ELSE 'Others (12 Local Govs)' END
+    CASE WHEN rank_num <= 4 THEN 도시명_en ELSE 'Others (11 Local Govs)' END
 ORDER BY 
     구분 ASC, 
     ABS(SUM(gap_vol)) DESC;
