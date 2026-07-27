@@ -16,8 +16,8 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. Load Data
 data_map = {
-    "21_22": pd.read_csv(data_dir / "cargo_flow_shift_21_22.csv"),
-    "22_23": pd.read_csv(data_dir / "cargo_flow_shift_22_23.csv"),
+    "21_22": pd.read_csv(data_dir / "Deajeon_cargo_flow_shift_21_22.csv"),
+    "22_23": pd.read_csv(data_dir / "Deajeon_cargo_flow_shift_22_23.csv"),
 }
 
 # 2. Highlight cities setting for each language, year, and type
@@ -50,7 +50,7 @@ I18N = {
         "type_map": {"출발": "출발", "도착": "도착"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
         "info_box": "* Y: 도시 (권역)  |  단위: 만 톤\n* 수도권: 서울/경기/인천 통합",
-        "filename": "cargo_flow_shift_dashboard_2x2_ko.jpg",
+        "filename": "Deajeon_cargo_flow_shift_dashboard_2x2_ko.jpg",
     },
     "en": {
         "title_main": "Regional O/D Freight Flow Shift Analysis (2021-2023)",
@@ -64,7 +64,7 @@ I18N = {
         "type_map": {"출발": "Departure", "도착": "Arrival"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
         "info_box": "* Y: City (Region)  |  Unit: 10k Tons\n* Capital Area: Seoul/Gyeonggi/Incheon",
-        "filename": "cargo_flow_shift_dashboard_2x2_en.jpg",
+        "filename": "Deajeon_cargo_flow_shift_dashboard_2x2_en.jpg",
     },
 }
 

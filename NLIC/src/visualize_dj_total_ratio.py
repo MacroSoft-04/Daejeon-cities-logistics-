@@ -15,8 +15,8 @@ save_dir.mkdir(parents=True, exist_ok=True)
 data_dir = base_dir / "data"
 
 # 1. Load both dataframes
-df_ratios = pd.read_csv(data_dir / "grouping.csv")
-df_totals = pd.read_csv(data_dir / "yearly_total_amount.csv")
+df_ratios = pd.read_csv(data_dir / "Deajeon_grouping.csv")
+df_totals = pd.read_csv(data_dir / "Deajeon_yearly_total_amount.csv")
 
 # Convert totals to Millions
 df_totals["출발_백만"] = df_totals["총 출발량"] / 1_000_000
@@ -47,7 +47,7 @@ I18N = {
         "legend_title": "권역",
         "xlabel": "연도",
         "ylabel": "물동량 비율(%)",
-        "filename": "total_ratio_ko.jpg",
+        "filename": "Deajeon_total_ratio_ko.jpg",
         "year_fmt": lambda yr: f"{yr}년",
     },
     "en": {
@@ -60,7 +60,7 @@ I18N = {
         "legend_title": "Region",
         "xlabel": "Year",
         "ylabel": "car freight flow ratio (%)",
-        "filename": "total_ratio_en.jpg",
+        "filename": "Deajeon_total_ratio_en.jpg",
         "year_fmt": lambda yr: f"{yr}year",
     },
 }

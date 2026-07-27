@@ -38,7 +38,7 @@ REGION_MAP = {
 # Multilingual configuration dictionary
 I18N = {
     "ko": {
-        "title": "권역별 풀필먼트/로지스틱스(FC) 거점 신설 추이 (2019~2025)",
+        "title": "권역별 쿠팡FC 거점 신설 추이 (2019~2025)",
         "xlabel": "연도",
         "ylabel": "신규 거점 등록 건수",
         "legend_title": "권역 구분",
@@ -46,7 +46,7 @@ I18N = {
         "filename": "coupang_region_stacked_ko.jpg",
     },
     "en": {
-        "title": "FC Warehouse Registrations by Region (2019-2025)",
+        "title": "Coupang FC Warehouse Registrations by Region (2019-2025)",
         "xlabel": "Year",
         "ylabel": "New Registration Count",
         "legend_title": "Region",

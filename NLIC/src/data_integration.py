@@ -17,4 +17,4 @@ for year in years:
 # Concatenate all DataFrames in the list along the columns (axis=1)
 df_total = pd.concat(df_list, axis=1)
 
-df_total.to_csv(f"{data_dir}/data_logistics_total.csv", encoding='utf-8-sig')
+df_total.to_csv(f"{data_dir}/Deajeon_data_logistics_total.csv", index=False, encoding='utf-8-sig')
