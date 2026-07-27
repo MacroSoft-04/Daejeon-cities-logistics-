@@ -24,4 +24,3 @@ engine = create_engine(
 )
 
 df.to_sql(name="capital_city", con=engine, if_exists="replace", index=False)
-print("Successfully uploaded to MySQL!")

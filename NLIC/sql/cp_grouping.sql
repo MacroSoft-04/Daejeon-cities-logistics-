@@ -2,28 +2,14 @@ SELECT
     year, 
     flow_type,
     
-    -- [한글 컬럼: 물동량]
-    SUM(CASE WHEN target_region IN ('수도권') THEN total_cargo_volume ELSE 0 END) AS 수도권_물동량,
-    SUM(CASE WHEN target_region IN ('부산', '울산', '경남', '대구', '경북') THEN total_cargo_volume ELSE 0 END) AS 영남권_물동량,
-    SUM(CASE WHEN target_region IN ('대전', '세종', '충남', '충북') THEN total_cargo_volume ELSE 0 END) AS 충청권_물동량,
-    SUM(CASE WHEN target_region IN ('광주', '전남', '전북') THEN total_cargo_volume ELSE 0 END) AS 호남권_물동량,
-    SUM(CASE WHEN target_region IN ('강원', '제주') THEN total_cargo_volume ELSE 0 END) AS 기타_물동량,
-
-    -- [한글 컬럼: 비율 (%)]
-    ROUND(SUM(CASE WHEN target_region IN ('수도권') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS 수도권_비율,
-    ROUND(SUM(CASE WHEN target_region IN ('부산', '울산', '경남', '대구', '경북') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS 영남권_비율,
-    ROUND(SUM(CASE WHEN target_region IN ('대전', '세종', '충남', '충북') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS 충청권_비율,
-    ROUND(SUM(CASE WHEN target_region IN ('광주', '전남', '전북') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS 호남권_비율,
-    ROUND(SUM(CASE WHEN target_region IN ('강원', '제주') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS 기타_비율,
-
-    -- [영문 컬럼: Volume]
+    -- Volume]
     SUM(CASE WHEN target_region IN ('수도권') THEN total_cargo_volume ELSE 0 END) AS Capital_Area_vol,
     SUM(CASE WHEN target_region IN ('부산', '울산', '경남', '대구', '경북') THEN total_cargo_volume ELSE 0 END) AS Yeongnam_vol,
     SUM(CASE WHEN target_region IN ('대전', '세종', '충남', '충북') THEN total_cargo_volume ELSE 0 END) AS Chungcheong_vol,
     SUM(CASE WHEN target_region IN ('광주', '전남', '전북') THEN total_cargo_volume ELSE 0 END) AS Honam_vol,
     SUM(CASE WHEN target_region IN ('강원', '제주') THEN total_cargo_volume ELSE 0 END) AS Others_vol,
 
-    -- [영문 컬럼: Ratio (%)]
+    -- [Ratio (%)]
     ROUND(SUM(CASE WHEN target_region IN ('수도권') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS Capital_Area_ratio,
     ROUND(SUM(CASE WHEN target_region IN ('부산', '울산', '경남', '대구', '경북') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS Yeongnam_ratio,
     ROUND(SUM(CASE WHEN target_region IN ('대전', '세종', '충남', '충북') THEN total_cargo_volume ELSE 0 END) * 100.0 / NULLIF(SUM(total_cargo_volume), 0), 2) AS Chungcheong_ratio,
