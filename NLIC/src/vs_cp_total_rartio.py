@@ -15,16 +15,15 @@ save_dir.mkdir(parents=True, exist_ok=True)
 data_dir = base_dir / "data"
 
 # 1. Load both dataframes
-df_ratios = pd.read_csv(data_dir / "Deajeon_grouping.csv")
-df_totals = pd.read_csv(data_dir / "Deajeon_yearly_total_amount.csv")
+df = pd.read_csv(data_dir / "cp_yearly_total_amount.csv")
 
 # Convert totals to Millions
-df_totals["출발_백만"] = df_totals["총 출발량"] / 1_000_000
-df_totals["도착_백만"] = df_totals["총 도착량"] / 1_000_000
+df["출발_백만"] = df["총 출발량"] / 1_000_000
+df["도착_백만"] = df["총 도착량"] / 1_000_000
 
 # 2. Extract Columns Automatically from Dataframe
-ko_ratio_cols = [c for c in df_ratios.columns if c.endswith("_비율")]
-en_ratio_cols = [c for c in df_ratios.columns if c.endswith("_ratio")]
+ko_ratio_cols = [c for c in df.columns if c.endswith("_비율")]
+en_ratio_cols = [c for c in df.columns if c.endswith("_ratio")]
 
 ko_labels = [c.replace("_비율", "") for c in ko_ratio_cols]
 en_labels = [c.replace("_ratio", "").replace("_"," ") for c in en_ratio_cols]
