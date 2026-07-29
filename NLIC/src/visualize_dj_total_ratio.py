@@ -39,7 +39,7 @@ set2_colors = plt.cm.Set2.colors
 # Multilingual text dictionary
 I18N = {
     "ko": {
-        "title_main": "연도 및 구분별 물동량 비율 변화 (2019-2023)",
+        "title_main": "대전 기준 연도·권역별 물동량 비율 변화 (2019-2023)",
         "title_sub": "{type}",
         "type_map": {"출발": "출발", "도착": "도착"},
         "ratio_col": ko_ratio_cols,
@@ -51,7 +51,7 @@ I18N = {
         "year_fmt": lambda yr: f"{yr}년",
     },
     "en": {
-        "title_main": "year and region-based freight flow ratio change (2019-2023)",
+        "title_main": "Freight Flow Ratio Change by Region for Deajeon (2019-2023)",
         "region_col": "region_en",
         "title_sub": "{type}",
         "type_map": {"출발": "departure", "도착": "arrival"},

@@ -39,7 +39,7 @@ highlight_map = {
 # 3. Multilingual Configuration Dictionary
 I18N = {
     "ko": {
-        "title_main": "권역별 화물 물동량 연도별 변동 분석 (2021-2023)",
+        "title_main": "대전광역시 기준 권역별 화물 물동량 연도별 변동 분석 (2021-2023)",
         "subtitle": "[{year}] 화물 물동량 변동 ({type})",
         "info_box": "Y: 도시 (권역)  |  단위: 만 톤",
         "unit_fmt": "{val:+.1f}만",
@@ -53,7 +53,7 @@ I18N = {
         "filename": "Deajeon_cargo_flow_shift_dashboard_2x2_ko.jpg",
     },
     "en": {
-        "title_main": "Regional O/D Freight Flow Shift Analysis (2021-2023)",
+        "title_main": "Daejeon Regional O/D Freight Flow Shift Analysis (2021-2023)",
         "subtitle": "[{year}] Cargo Volume Change ({type})",
         "info_box": "Y: City (Region)  |  Unit: 10k Tons",
         "unit_fmt": "{val:+.1f}k",

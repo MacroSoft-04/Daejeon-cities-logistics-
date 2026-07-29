@@ -214,7 +214,7 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
                             color="black",
                             linespacing=1,
                         )
-                    else:  # 'Others' 회색 막대 영역 라벨
+                    else:  # gray area for 'Others'
                         ax.text(
                             bar.get_x() + bar.get_width() / 2.0,
                             y_pos,
@@ -230,7 +230,7 @@ def plot_zoomed_stacked_chart(df_ratio, df_total, save_dir):
 
             bottoms += plot_heights
 
-        # 각 연도 막대 상단에 'Total: XXX' 표시
+        # Add Total Amount annotations above each bar
         for idx, yr in enumerate(years):
             tot_sub = df_total[df_total["YEAR"] == yr]
             if not tot_sub.empty:
