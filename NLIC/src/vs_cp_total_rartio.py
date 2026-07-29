@@ -219,11 +219,9 @@ def generate_multilingual_plots(df_long, data_df, save_dir):
             # Display total volume text above bars
             max_bar_height = max(bottoms) if len(bottoms) > 0 else 1
             for idx, yr in enumerate(years):
-                tot_sub = data_df[data_df["year"] == yr]
-                if (
-                    not tot_sub.empty
-                    and "total_cargo_volume" in tot_sub.columns
-                ):
+                # data_df에서 flow_type까지 구분해서 가져오는 방식 (필요 시)
+                tot_sub = data_df[(data_df["year"] == yr) & (data_df["flow_type"] == gubun)]
+                if not tot_sub.empty and "total_cargo_volume" in tot_sub.columns:
                     tot_num = tot_sub["total_cargo_volume"].values[0] / 1_000_000
                 else:
                     tot_num = bottoms[idx]
