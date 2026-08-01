@@ -15,19 +15,20 @@ else:  # Linux
 plt.rcParams["axes.unicode_minus"] = False
 
 # 경로 설정
-base_dir = Path("./NLIC_tr_pf")
+base_dir = Path(".")
 data_dir = base_dir / "data"
 data_dir.mkdir(parents=True, exist_ok=True)
 save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
 # 2. 데이터 불러오기
-file_path = data_dir / "commodity_cat.csv"
+file_path = data_dir / "nlictr_commodity_cat.csv"
 df = pd.read_csv(file_path)
 
 # 3. 데이터 전처리 ('반입', '반출' 구분 데이터 추출 및 만 톤 단위 변환)
 df_io = df[
-    (df["구분"].isin(["반입", "반출"])) & (df["region_kr"].isin(["수도권", "대전시"]))
+    (df["구분"].isin(["반입", "반출"]))
+    & (df["region_kr"].isin(["충청권(대전제외)", "대전시"]))
 ].copy()
 
 df_io["물동량_만톤"] = df_io["물동량_톤"] / 10000
@@ -53,7 +54,7 @@ categories = [
 colors = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc949"]
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 7), sharey=True)
-regions = ["수도권", "대전시"]
+regions = ["충청권(대전제외)", "대전시"]
 
 for i, reg in enumerate(regions):
     ax = axes[i]
@@ -131,7 +132,7 @@ fig.legend(
 plt.tight_layout()
 
 # 이미지 저장 경로 지정 (save_dir 활용)
-output_path = save_dir / "butterfly_chart_capital_vs_daejeon.png"
+output_path = save_dir / "11_chung_dj_cat.jpg"
 plt.savefig(output_path, dpi=300, bbox_inches="tight")
 plt.show()
 

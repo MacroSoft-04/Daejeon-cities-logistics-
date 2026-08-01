@@ -23,7 +23,6 @@ WITH departure_data AS (
         nlic_nt_freight_weight
     WHERE 
         base_city_kr = '충청권(대전제외)'
-        AND 구분 = '출발'  -- [핵심] 원본 데이터의 '출발' 행만 필터링!
 ),
 arrival_data AS (
     -- 2. [Inbound] 충청권 도착 데이터 중, 원본 구분도 '도착'인 행만 추출
@@ -39,7 +38,6 @@ arrival_data AS (
         nlic_nt_freight_weight
     WHERE 
         target_city_kr = '충청권(대전제외)'
-        AND 구분 = '도착'  -- [핵심] 원본 데이터의 '도착' 행만 필터링!
 ),
 combined_data AS (
     SELECT * FROM departure_data

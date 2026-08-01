@@ -14,7 +14,7 @@ WITH base_mapped AS (
     SELECT
         연도,
         '도착' AS flow_type,
-        대상지역 AS base_region,  -- 도착지 관점에서는 대상지역이 기준이 됨
+        대상지역 AS base_region,   -- 도착지 관점에서는 대상지역이 기준이 됨
         기준지역 AS target_region, -- 도착지 관점에서는 기준지역이 상대 지역이 됨
         물동량
     FROM nlic_raw_nt_logi_total
@@ -22,7 +22,7 @@ WITH base_mapped AS (
 mapped_data AS (
     SELECT
         연도,
-        flow_type AS 구분,
+        flow_type, -- [수정 1] flow_type 컬럼 직접 선택
         
         -- 기준지역 권역 매핑
         CASE 
@@ -63,6 +63,7 @@ mapped_data AS (
         END AS target_city_en,
         물동량
     FROM base_mapped
+    WHERE flow_type = '출발' -- [핵심] 출발 데이터만 필터링
 )
 SELECT 
     연도,
@@ -70,7 +71,6 @@ SELECT
     base_city_en,
     target_city_kr,
     target_city_en,
-    구분,
     CASE 
         WHEN base_city_kr = target_city_kr THEN '권역 내'
         ELSE '권역 간'
@@ -82,5 +82,4 @@ GROUP BY
     base_city_kr,
     base_city_en,
     target_city_kr,
-    target_city_en,
-    구분;
+    target_city_en

@@ -9,29 +9,34 @@ import seaborn as sns
 
 # Directory setup
 base_dir = Path(".")
-save_dir = base_dir / "output"
+save_dir = base_dir / "NLIC" / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
-data_dir = base_dir / "data"
+data_dir = base_dir / "NLIC" / "data"
 
 # Data loading
-data_df = pd.read_csv(data_dir / "nlic_chung_cargo_flow.csv")
+data_df = pd.read_csv(data_dir / "cp_yearly_total_amount.csv")
 region_df = pd.read_csv(base_dir / "region_mapping.csv")
 color_df = pd.read_csv(base_dir / "color_palette.csv")
 
-# 기존 전처리(clean_df, melt, rsplit, pivot) 코드를 모두 지우고 아래로 교체합니다.
+# Data preprocessing to df_long format
+clean_df = data_df.drop(columns=["total_cargo_volume"], errors="ignore")
+df_melted = pd.melt(
+    clean_df,
+    id_vars=["year", "flow_type"],
+    var_name="metric_region",
+    value_name="value",
+)
 
-df_long = data_df.copy()
+df_melted[["region", "metric"]] = df_melted["metric_region"].str.rsplit(
+    "_", n=1, expand=True
+)
 
-# 1. 컬럼명 표준화 (필요시)
-# CSV의 지역 컬럼명이 target_region이라면 region으로 변경
-if "target_region" in df_long.columns:
-    df_long = df_long.rename(columns={"target_region": "region"})
-
-# CSV의 물동량 컬럼명이 total_cargo_volume 또는 cargo_volume이라면 vol로 변경
-if "total_cargo_volume" in df_long.columns:
-    df_long = df_long.rename(columns={"total_cargo_volume": "vol"})
-elif "cargo_volume" in df_long.columns:
-    df_long = df_long.rename(columns={"cargo_volume": "vol"})
+df_long = df_melted.pivot(
+    index=["year", "flow_type", "region"],
+    columns="metric",
+    values="value",
+).reset_index()
+df_long.columns.name = None
 
 # Font and global configurations
 plt.rcParams["font.family"] = "Malgun Gothic"
@@ -48,7 +53,7 @@ I18N = {
         "legend_title": "권역",
         "xlabel": "연도",
         "ylabel": "물동량 (백만 톤)",
-        "filename": "10_chung_total_ratio_ko.jpg",
+        "filename": "cp_total_ratio_ko.jpg",
         "year_fmt": lambda yr: f"{yr}년",
         "total_fmt": lambda val: f"총합: {val:.1f}백만",
     },
@@ -59,7 +64,7 @@ I18N = {
         "legend_title": "Region",
         "xlabel": "Year",
         "ylabel": "Freight Flow Amount (Million Tons)",
-        "filename": "10_chung_total_ratio_en.jpg",
+        "filename": "cp_total_ratio_en.jpg",
         "year_fmt": lambda yr: f"{yr}year",
         "total_fmt": lambda val: f"Total: {val:.1f}M",
     },
