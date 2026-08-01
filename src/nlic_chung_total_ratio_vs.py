@@ -18,22 +18,32 @@ data_df = pd.read_csv(data_dir / "nlic_chung_cargo_flow.csv")
 region_df = pd.read_csv(base_dir / "region_mapping.csv")
 color_df = pd.read_csv(base_dir / "color_palette.csv")
 
-# 기존 전처리(clean_df, melt, rsplit, pivot) 코드를 모두 지우고 아래로 교체합니다.
-
+# =====================================================================
+# 1. 데이터 전처리 (Long Format 수용 및 컬럼 정제)
+# =====================================================================
 df_long = data_df.copy()
 
-# 1. 컬럼명 표준화 (필요시)
-# CSV의 지역 컬럼명이 target_region이라면 region으로 변경
+# 컬럼명 표준화 (target_region -> region)
 if "target_region" in df_long.columns:
     df_long = df_long.rename(columns={"target_region": "region"})
 
-# CSV의 물동량 컬럼명이 total_cargo_volume 또는 cargo_volume이라면 vol로 변경
+# 물동량 컬럼 매핑 (total_cargo_volume / cargo_volume -> vol)
 if "total_cargo_volume" in df_long.columns:
     df_long = df_long.rename(columns={"total_cargo_volume": "vol"})
 elif "cargo_volume" in df_long.columns:
     df_long = df_long.rename(columns={"cargo_volume": "vol"})
 
-# Font and global configurations
+# ratio 컬럼 타입 및 계산 처리
+if "ratio" in df_long.columns:
+    df_long["ratio"] = df_long["ratio"].astype(float)
+else:
+    # ratio가 없는 경우 자동으로 % 계산
+    group_totals = df_long.groupby(["year", "flow_type"])["vol"].transform("sum")
+    df_long["ratio"] = (df_long["vol"] / group_totals) * 100
+
+# =====================================================================
+# 2. 폰트 및 설정
+# =====================================================================
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
@@ -42,7 +52,7 @@ type_color_map = {"출발": "#17669e", "도착": "#ad5100"}
 # Internationalization (I18N) settings
 I18N = {
     "ko": {
-        "title_main": "수도권 기준 연도·권역별 물동량 비율 변화 (2019-2023)",
+        "title_main": "충청(대전제외) 기준 연도·권역별 물동량 비율 변화 (2019-2023)",
         "title_sub": "{type}",
         "type_map": {"출발": "출발", "도착": "도착"},
         "legend_title": "권역",
@@ -53,7 +63,7 @@ I18N = {
         "total_fmt": lambda val: f"총합: {val:.1f}백만",
     },
     "en": {
-        "title_main": "Freight Flow Ratio Change by Region for Capital Area (2019-2023)",
+        "title_main": "Freight Flow Ratio Change by Region for Chungcheong (2019-2023)",
         "title_sub": "{type}",
         "type_map": {"출발": "departure", "도착": "arrival"},
         "legend_title": "Region",
@@ -67,7 +77,6 @@ I18N = {
 
 
 class ColorMapper:
-
     def __init__(self, color_df):
         other_row = color_df[color_df["id"].astype(str) == "other"]
         default_other_color = (
@@ -164,7 +173,9 @@ def generate_multilingual_plots(df_long, data_df, save_dir):
             # Draw stacked bars by region
             for cat in categories:
                 heights = pivot_ratio[cat].values
-                vols = pivot_vol[cat].values if cat in pivot_vol else heights
+                vols = (
+                    pivot_vol[cat].values / 1_000_000 if cat in pivot_vol else heights
+                )  # 톤 -> 백만 톤 변환
 
                 display_name = get_region_info(cat, lang=lang)
                 cat_color = color_mapper.get_color(cat)
@@ -196,7 +207,7 @@ def generate_multilingual_plots(df_long, data_df, save_dir):
                             va="center",
                             fontsize=8.5,
                             fontweight="bold",
-                            color="black" if cat == "Others" else "white",
+                            color="black" if cat in ["Others", "기타"] else "white",
                         )
 
                 bottoms += vols
@@ -204,14 +215,7 @@ def generate_multilingual_plots(df_long, data_df, save_dir):
             # Display total volume text above bars
             max_bar_height = max(bottoms) if len(bottoms) > 0 else 1
             for idx, yr in enumerate(years):
-                # data_df에서 flow_type까지 구분해서 가져오는 방식 (필요 시)
-                tot_sub = data_df[
-                    (data_df["year"] == yr) & (data_df["flow_type"] == gubun)
-                ]
-                if not tot_sub.empty and "total_cargo_volume" in tot_sub.columns:
-                    tot_num = tot_sub["total_cargo_volume"].values[0] / 1_000_000
-                else:
-                    tot_num = bottoms[idx]
+                tot_num = bottoms[idx]  # 이미 백만 톤으로 집계된 상단 총합 사용
 
                 ax.text(
                     idx,
@@ -261,5 +265,6 @@ def generate_multilingual_plots(df_long, data_df, save_dir):
         plt.close(fig)
 
 
-# Execution
+# 실행
 generate_multilingual_plots(df_long, data_df, save_dir)
+print("✅ 시각화 이미지 저장 완료 (output/ 폴더 확인)")
