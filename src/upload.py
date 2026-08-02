@@ -48,4 +48,4 @@ if __name__ == "__main__":
         upload_csv_to_db(target_file)
     else:
         # 인자 없이 실행 시 기본 파일 업로드
-        upload_csv_to_db("nlic_chung_regional_cargo_flow.csv")
+        upload_csv_to_db("nlictr_cargo_2019_2023.csv")
