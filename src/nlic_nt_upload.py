@@ -15,7 +15,7 @@ db_password = os.getenv("DB_PASSWORD")
 base_dir = Path(".")
 data_dir = base_dir / "data"
 
-df = pd.read_csv(data_dir / "nlic_nt_freight_weight.csv")
+df = pd.read_csv(data_dir / "nlic_nt_fr_weight.csv")
 
 # 3. Encode password and create database engine
 password = quote_plus(db_password)
@@ -23,4 +23,4 @@ engine = create_engine(
     f"mysql+pymysql://root:{password}@localhost:3306/mysql", echo=False
 )
 
-df.to_sql(name="nlic_nt_freight_weight", con=engine, if_exists="replace", index=False)
+df.to_sql(name="nlic_nt_fr_weight", con=engine, if_exists="replace", index=False)

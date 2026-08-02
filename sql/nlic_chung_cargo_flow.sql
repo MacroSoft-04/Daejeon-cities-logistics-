@@ -1,43 +1,39 @@
-/*
-====================================================================
-* Author: Minseo Kim
-* Data Sources: 
-    - NLIC 물류통계(2018~2026)
-    - data_logistics_total_national.csv
-* organise data by region
-* Output: data/nlic_chung_cargo_flow.csv
-====================================================================
-*/
-
 WITH departure_data AS (
-    -- 1. [Outbound] 충청권 출발 데이터 중, 원본 구분도 '출발'인 행만 추출
+    -- 1. [Outbound] 충청권에서 다른 지역으로 출발하는 물동량
+    -- (기준지: 충청권 출발지 / 상대지: 타지역 도착지)
     SELECT
-        연도 AS year,
-        '충청권(대전제외)' AS base_city_kr,
-        'Chungcheong(excl. DJ)' AS base_city_en,
-        target_city_kr AS partner_city_kr,
-        target_city_en AS partner_city_en,
-        물동량 AS cargo_volume,
+        year,
+        base_city,
+        base_region_kr,
+        base_region_en,
+        target_city,
+        target_region_kr,
+        target_region_en,
+        cargo_volume,
         '출발' AS direction
     FROM
-        nlic_nt_freight_weight
+        nlic_nt_fr_weight
     WHERE 
-        base_city_kr = '충청권(대전제외)'
+        base_region_kr = '충청권(대전제외)'
 ),
 arrival_data AS (
-    -- 2. [Inbound] 충청권 도착 데이터 중, 원본 구분도 '도착'인 행만 추출
+    -- 2. [Inbound] 다른 지역에서 충청권으로 도착하는 물동량
+    -- (기준지: 충청권 도착지 / 상대지: 타지역 출발지)
+    -- ※ SELECT 순서를 departure_data와 100% 동일하게 맞춰줘야 합니다!
     SELECT
-        연도 AS year,
-        '충청권(대전제외)' AS base_city_kr,
-        'Chungcheong(excl. DJ)' AS base_city_en,
-        base_city_kr AS partner_city_kr,
-        base_city_en AS partner_city_en,
-        물동량 AS cargo_volume,
+        year,
+        target_city AS base_city,              -- [위치 2] 충청권 도시를 base_city로
+        target_region_kr AS base_region_kr,    -- [위치 3] 충청권을 base_region_kr로
+        target_region_en AS base_region_en,    -- [위치 4] 충청권 영문명을 base_region_en으로
+        base_city AS target_city,              -- [위치 5] 타지역 도시를 target_city로
+        base_region_kr AS target_region_kr,    -- [위치 6] 타지역 권역을 target_region_kr로
+        base_region_en AS target_region_en,    -- [위치 7] 타지역 영문명을 target_region_en으로
+        cargo_volume,
         '도착' AS direction
     FROM
-        nlic_nt_freight_weight
+        nlic_nt_fr_weight
     WHERE 
-        target_city_kr = '충청권(대전제외)'
+        target_region_kr = '충청권(대전제외)'
 ),
 combined_data AS (
     SELECT * FROM departure_data
@@ -47,7 +43,7 @@ combined_data AS (
 aggregated_data AS (
     SELECT
         *,
-        -- 연도/방향별 비율(%) 계산
+        -- 연도 및 direction(출발/도착)별 총물동량 대비 비율(%)
         ROUND(
             (cargo_volume / SUM(cargo_volume) OVER (PARTITION BY year, direction)) * 100, 
             2
@@ -55,16 +51,17 @@ aggregated_data AS (
     FROM
         combined_data
 )
--- 최종 결과 출력
 SELECT 
     year,
-    base_city_kr,
-    base_city_en,
-    partner_city_kr,
-    partner_city_en,
-    cargo_volume,
+    base_city,
+    base_region_kr,
+    base_region_en,
+    target_city,
+    target_region_kr,
+    target_region_en,
     direction,
+    cargo_volume,
     ratio
 FROM 
     aggregated_data
-ORDER BY year, partner_city_kr, direction;
+ORDER BY year, target_city, direction;
