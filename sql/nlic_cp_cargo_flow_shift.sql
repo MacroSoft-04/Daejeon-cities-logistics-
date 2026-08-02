@@ -35,7 +35,7 @@ WITH base_gap AS (
         -- Calculate cargo volume change
         SUM(CASE WHEN 연도 = 2022 THEN 물동량 ELSE 0 END) - SUM(CASE WHEN 연도 = 2021 THEN 물동량 ELSE 0 END) AS gap_vol
     FROM 
-        data_logistics_cleaned
+        nlic_cp_cargo_flow
     WHERE 
         연도 IN (2021, 2022)
     GROUP BY 
@@ -138,7 +138,7 @@ WITH base_gap AS (
         -- Calculate cargo volume change in 2023 compared to 2022
         SUM(CASE WHEN 연도 = 2023 THEN 물동량 ELSE 0 END) - SUM(CASE WHEN 연도 = 2022 THEN 물동량 ELSE 0 END) AS gap_vol
     FROM 
-        data_logistics_cleaned
+        nlic_cp_cargo_flow
     WHERE 
         연도 IN (2022, 2023)
     GROUP BY 

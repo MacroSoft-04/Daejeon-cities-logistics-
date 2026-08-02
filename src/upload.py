@@ -42,10 +42,10 @@ def upload_csv_to_db(file_name: str, table_name: str = None):
 
 
 if __name__ == "__main__":
-    # 터미널에서 'python upload.py nlic_chung_regional_cargo_flow.csv' 형태로 실행 가능
+    # 터미널에서 'python upload.py nlictr_com_cat.csv' 형태로 실행 가능
     if len(sys.argv) > 1:
         target_file = sys.argv[1]
         upload_csv_to_db(target_file)
     else:
         # 인자 없이 실행 시 기본 파일 업로드
-        upload_csv_to_db("nlictr_cargo_2019_2023.csv")
+        upload_csv_to_db("nlictr_com_cat.csv")
