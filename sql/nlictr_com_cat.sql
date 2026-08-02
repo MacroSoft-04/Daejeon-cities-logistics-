@@ -1,7 +1,7 @@
 WITH mapped_data AS ( 
     SELECT
         연도 AS year,
-        품목 AS category,
+        품목 AS commodity,
         지역 AS city,
         구분 AS flow_type,
         물동량_톤 AS cargo_volume,

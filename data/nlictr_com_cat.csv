@@ -1,4 +1,4 @@
-"year","category","city","flow_type","cargo_volume","commodity_category","region_kr","region_en"
+"year","commodity","city","flow_type","cargo_volume","commodity_category","region_kr","region_en"
 "2019","농산물","서울","반입","1629692","농축수산물 및 신선식품","수도권","Capital Area"
 "2019","농산물","서울","반출","2688","농축수산물 및 신선식품","수도권","Capital Area"
 "2019","농산물","서울","합계","1632380","농축수산물 및 신선식품","수도권","Capital Area"
