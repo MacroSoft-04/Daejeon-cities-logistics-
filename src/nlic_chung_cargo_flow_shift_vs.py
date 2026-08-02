@@ -14,33 +14,13 @@ data_dir = base_dir / "data"
 save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
-# 1. Load Data
+# 1. Load Data (UNION ALL 쿼리 결과 CSV)
 df_raw = pd.read_csv(data_dir / "nlic_chung_cargo_volume_shift.csv")
 
-# CSV 내 city_en 컬럼의 한글 데이터를 정식 영문 도시명으로 올바르게 보정
-CITY_EN_MAP = {
-    "기타 (11개 지자체)": "Others (11 Local Govs)",
-    "경기": "Gyeonggi",
-    "서울": "Seoul",
-    "충남": "Chungnam",
-    "충북": "Chungbuk",
-    "전남": "Jeonnam",
-    "울산": "Ulsan",
-}
-df_raw["city_en_clean"] = (
-    df_raw["target_city"].map(CITY_EN_MAP).fillna(df_raw["target_city"])
-)
-
-# 연도별 변동 데이터프레임 구조화
-df_21_22 = df_raw.copy()
-df_21_22["gap_vol"] = df_21_22["gap_22_21_vol"]
-
-df_22_23 = df_raw.copy()
-df_22_23["gap_vol"] = df_22_23["gap_23_22_vol"]
-
+# 연도별 변동 데이터 분리 (period_type 기준)
 data_map = {
-    "21_22": df_21_22,
-    "22_23": df_22_23,
+    "21_22": df_raw[df_raw["period_type"] == "2021-2022"].copy(),
+    "22_23": df_raw[df_raw["period_type"] == "2022-2023"].copy(),
 }
 
 # Subplot 위치 매핑 설정
@@ -52,14 +32,14 @@ highlight_map = {
     "ko": {
         ("21_22", "출발"): ["울산", "수도권", "충남", "충북"],
         ("21_22", "도착"): ["수도권", "충남"],
-        ("22_23", "출발"): ["충남", "수도권"],
+        ("22_23", "출발"): ["충남", "수도권", "대전"],
         ("22_23", "도착"): ["충남", "수도권"],
     },
     "en": {
         ("21_22", "출발"): ["Ulsan", "Capital Area", "Chungnam", "Chungbuk"],
-        ("21_22", "도착"): ["Gyeonggi", "Seoul"],
-        ("22_23", "출발"): ["Chungnam", "Capital Area"],
-        ("22_23", "도착"): ["Chungnam", "Gyeonggi"],
+        ("21_22", "도착"): ["Capital Area"],
+        ("22_23", "출발"): ["Chungnam", "Capital Area", "Daejeon"],
+        ("22_23", "도착"): ["Chungnam", "Capital Area"],
     },
 }
 
@@ -75,19 +55,19 @@ I18N = {
         "type_map": {"출발": "출발", "도착": "도착"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
         "info_box": "* Y: 도시 (권역)  |  단위: 만 톤\n* 수도권: 서울/경기/인천 통합",
-        "filename": "12_Chungcheong_cargo_flow_shift_dashboard_2x2_ko.jpg",
+        "filename": "11_Chungcheong_cargo_flow_shift_dashboard_2x2_ko.jpg",
     },
     "en": {
         "title_main": "Chungcheong Regional O/D Freight Flow Shift Analysis (2021-2023)",
         "subtitle": "[{year}] Cargo Volume Change ({type})",
         "unit_fmt": "{val:+.1f}k",
         "xaxis_fmt": lambda x, pos: f"{int(x/10000)}k" if x != 0 else "0",
-        "city_col": "city_en_clean",  # 올바르게 보정된 영문 도시 컬럼 사용
+        "city_col": "city_en",
         "region_col": "region_en",
         "type_map": {"출발": "Departure", "도착": "Arrival"},
         "year_map": {"21_22": "2021 vs 2022", "22_23": "2022 vs 2023"},
         "info_box": "* Y: City (Region)  |  Unit: 10k Tons\n* Capital Area: Seoul/Gyeonggi/Incheon",
-        "filename": "12_Chungcheong_cargo_flow_shift_dashboard_2x2_en.jpg",
+        "filename": "11_Chungcheong_cargo_flow_shift_dashboard_2x2_en.jpg",
     },
 }
 
@@ -126,16 +106,15 @@ for lang in ["ko", "en"]:
             current_highlights = highlight_map[lang].get((year_key, gubun), [])
 
             # 바 색상 지정 (강조 도시는 진한 색, 일반 도시는 연한 색)
+            # 바 색상 지정 (강조 도시는 진한 색, 일반 도시는 연한 색)
             colors = []
             for idx, row in plot_data.iterrows():
-                city_name = str(row[c_col])
-                full_label = str(row["도시_권역"])
+                city_name = str(row[c_col]).strip().lower()
                 val = row["gap_vol"]
 
+                # 권역(region)은 제외하고 오직 순수 도시명(city_name)에 대해서만 완전 일치 또는 매칭 검사
                 is_highlighted = any(
-                    hl.strip().lower() in city_name.strip().lower()
-                    or hl.strip().lower() in full_label.strip().lower()
-                    for hl in current_highlights
+                    hl.strip().lower() in city_name for hl in current_highlights
                 )
 
                 if is_highlighted:
