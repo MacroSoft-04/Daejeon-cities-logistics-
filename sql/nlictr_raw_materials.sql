@@ -1,61 +1,59 @@
-WITH base_data AS (
-    SELECT
+WITH yearly_vol AS (
+    -- 1. 지역/유형/품목/연도별 물동량 집계 및 전년 대비 증감량(GAP) 계산
+    SELECT 
         region_kr,
         region_en,
         flow_type,
         commodity,
-        -- 연도별 물동량 집계
-        SUM(CASE WHEN year = 2020 THEN cargo_volume ELSE 0 END) AS vol_2020,
-        SUM(CASE WHEN year = 2021 THEN cargo_volume ELSE 0 END) AS vol_2021,
-        SUM(CASE WHEN year = 2022 THEN cargo_volume ELSE 0 END) AS vol_2022,
-        SUM(CASE WHEN year = 2023 THEN cargo_volume ELSE 0 END) AS vol_2023,
-        
-        -- 연도별 증감량 계산
-        SUM(CASE WHEN year = 2021 THEN cargo_volume ELSE 0 END) - SUM(CASE WHEN year = 2020 THEN cargo_volume ELSE 0 END) AS gap_20_21_vol,
-        SUM(CASE WHEN year = 2022 THEN cargo_volume ELSE 0 END) - SUM(CASE WHEN year = 2021 THEN cargo_volume ELSE 0 END) AS gap_21_22_vol,
-        SUM(CASE WHEN year = 2023 THEN cargo_volume ELSE 0 END) - SUM(CASE WHEN year = 2022 THEN cargo_volume ELSE 0 END) AS gap_22_23_vol
-    FROM 
-        nlictr_com_cat
-    WHERE   
-        year IN (2020, 2021, 2022, 2023)
-        AND region_kr IN ('충청권(대전제외)', '수도권', '대전시')
-        AND flow_type <> '합계'
-        AND commodity_category = '원자재 및 기초소재'
-    GROUP BY 
-        region_kr, 
-        region_en,
-        flow_type,
-        commodity  -- [수정] 품목별 집계를 위한 GROUP BY 추가
+        year,
+        SUM(cargo_volume) AS cargo_vol,
+        -- 이전 연도 추출 (연도 기준 정렬)
+        LAG(year) OVER (
+            PARTITION BY region_kr, flow_type, commodity 
+            ORDER BY year
+        ) AS prev_year,
+        -- 전년 대비 물동량 증감(GAP) 계산
+        SUM(cargo_volume) - LAG(SUM(cargo_volume)) OVER (
+            PARTITION BY region_kr, flow_type, commodity 
+            ORDER BY year
+        ) AS gap_vol
+    FROM nlictr_com_cat
+    WHERE year IN (2020, 2021, 2022, 2023)
+      AND region_kr IN ('충청권(대전제외)', '수도권', '대전시')
+      AND flow_type <> '합계'
+      AND commodity_category = '원자재 및 기초소재'
+    GROUP BY region_kr, region_en, flow_type, commodity, year
 ),
-ranked_data AS (
+target_rank AS (
+    -- 2. 21-22년 증감량(ABS) 기준 Top 2 품목 순위 추출
     SELECT 
-        *,
-        -- region_kr, flow_type 그룹별로 gap_21_22_vol 절댓값 기준 내림차순 순위 부여
+        region_kr,
+        flow_type,
+        commodity,
         ROW_NUMBER() OVER (
             PARTITION BY region_kr, flow_type 
-            ORDER BY ABS(gap_21_22_vol) DESC
+            ORDER BY ABS(gap_vol) DESC
         ) AS rank_num
-    FROM 
-        base_data
+    FROM yearly_vol
+    WHERE year = 2022
 )
 SELECT 
-    region_kr,
-    region_en,
-    flow_type,
-    commodity,  -- [수정] commodity_category 대신 실제 품목명 출력
-    vol_2020,
-    vol_2021,
-    vol_2022,
-    vol_2023,
-    gap_20_21_vol,
-    gap_21_22_vol,
-    gap_22_23_vol,
-    rank_num
-FROM 
-    ranked_data
-WHERE 
-    rank_num <= 5 
-ORDER BY 
-    region_kr, 
-    flow_type, 
-    rank_num;
+    y.region_kr,
+    y.region_en,
+    y.flow_type,
+    y.commodity,
+    t.rank_num,
+    y.year,
+    y.cargo_vol,
+    CASE 
+        WHEN y.prev_year IS NOT NULL THEN CONCAT(y.prev_year, ' - ', y.year)
+        ELSE '기준연도'
+    END AS gap_period,
+    y.gap_vol
+FROM yearly_vol y
+INNER JOIN target_rank t
+    ON y.region_kr = t.region_kr
+   AND y.flow_type = t.flow_type
+   AND y.commodity = t.commodity
+WHERE t.rank_num <= 2
+ORDER BY y.region_kr, y.flow_type, t.rank_num, y.year;
