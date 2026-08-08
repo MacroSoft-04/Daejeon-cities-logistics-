@@ -32,10 +32,10 @@ target_rank AS (
         commodity,
         ROW_NUMBER() OVER (
             PARTITION BY region_kr, flow_type 
-            ORDER BY ABS(gap_vol) DESC
+            ORDER BY SUM(ABS(gap_vol))/3.0 DESC
         ) AS rank_num
     FROM yearly_vol
-    WHERE year = 2022
+    GROUP BY region_kr, flow_type, commodity
 )
 SELECT 
     y.region_kr,
@@ -55,5 +55,5 @@ INNER JOIN target_rank t
     ON y.region_kr = t.region_kr
    AND y.flow_type = t.flow_type
    AND y.commodity = t.commodity
-WHERE t.rank_num <= 2
+WHERE t.rank_num <= 4
 ORDER BY y.region_kr, y.flow_type, t.rank_num, y.year;
