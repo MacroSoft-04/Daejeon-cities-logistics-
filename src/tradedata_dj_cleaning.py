@@ -47,8 +47,24 @@ for num in nums:
 
 # 3. 데이터가 있을 때만 결합 및 저장
 if dfs:
-    final_df = pd.concat(dfs, ignore_index=True)
-    save_path = save_dir / "tradedata_dj_2020_2026.csv"
+    concat_df = pd.concat(dfs, ignore_index=True)
+    final_df = concat_df.rename(columns=lambda x: x.replace(" ", ""))
+    if "HS코드" in final_df.columns:
+        # 1. 일단 문자열(str) 타입으로 변환 후 앞뒤 공백 정돈
+        hs_col = final_df["HS코드"].astype(str).str.strip()
+
+        # 2. '*)' 같은 특수문자 및 불순물 제거 (\*는 정규식 예약어이므로 \ 붙임)
+        hs_col = hs_col.str.replace(r"\*\)", "", regex=True).str.strip()
+
+        # 3. 소수점으로 잘못 입력된 끝자리 '.0'만 안전하게 제거 (\.0$ = 문자열 끝의 .0)
+        hs_col = hs_col.str.replace(r"\.0$", "", regex=True)
+
+        # 4. HS코드 앞자리 '0' 복원 (예: 2자리 기준 '1' -> '01')
+        # 무역 통계의 HS코드 2단위(Chapter)라면 아래와 같이 2자리를 맞춰줍니다.
+        hs_col = hs_col.str.zfill(2)
+
+        final_df["HS코드"] = hs_col
+    save_path = save_dir / "tradedata_dj_2020_2026_raw.csv"
     final_df.to_csv(save_path, index=False, encoding="utf-8-sig")
     print(f"✅ 파일 저장 완료: {save_path.resolve()}")
 else:

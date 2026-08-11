@@ -132,7 +132,7 @@ fig.legend(
 plt.tight_layout()
 
 # 이미지 저장 경로 지정 (save_dir 활용)
-output_path = save_dir / "11_chung_dj_cp_cat.jpg"
+output_path = save_dir / "03_chung_dj_cp_cat.jpg"
 plt.savefig(output_path, dpi=300, bbox_inches="tight")
 
 print(f"그래프가 '{output_path}'에 저장되었습니다.")

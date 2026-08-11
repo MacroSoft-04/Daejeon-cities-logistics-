@@ -1,3 +1,16 @@
+"""
+====================================================================
+* Author: Minseo Kim
+* Data Sources:
+    - NLIC (National Land Investment Corporation)
+* visualizaiton:
+    - Line Chart
+    - Indexation flow of Regional Raw Materials by Region
+    - Capital Area (Seoul, Incheon, Gyeonggi), Daejeon, Chungchung(excl. DJ)
+* Output: 06_raw_materials_indexed_flow.jpg
+====================================================================
+"""
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,7 +26,7 @@ save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. SQL 추출 결과 데이터 불러오기
-df_raw = pd.read_csv(data_dir / "nlictr_flow_shift.csv")
+df_raw = pd.read_csv(data_dir / "nlictr_flow_shift_vs06.csv")
 
 # 2. '원자재 및 기초소재' 품목만 필터링
 df_mat = df_raw[df_raw["commodity_category"] == "원자재 및 기초소재"].copy()
@@ -154,6 +167,6 @@ fig.text(
 # 텍스트 박스 공간 확보를 위해 rect 조절
 plt.tight_layout(rect=[0, 0.12, 0.90, 0.95])
 
-save_path = save_dir / "12_raw_materials_indexed_flow.jpg"
+save_path = save_dir / "06_raw_materials_indexed_flow.jpg"
 plt.savefig(save_path, dpi=300, bbox_inches="tight")
 plt.close()

@@ -1,3 +1,16 @@
+"""
+====================================================================
+* Author: Minseo Kim
+* Data Sources:
+    - NLIC (National Land Investment Corporation)
+* visualizaiton:
+    - Line Chart
+    - Import & Export Volumes of Regional Raw Materials by Category
+    - Capital Area (Seoul, Incheon, Gyeonggi), Daejeon, Chungchung(excl. DJ)
+* Output: 07_raw_materials_detail.jpg
+====================================================================
+"""
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,7 +28,7 @@ save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. 데이터 불러오기 (행 구조로 변경된 데이터)
-df = pd.read_csv(data_dir / "nlictr_raw_meterial_detail.csv")
+df = pd.read_csv(data_dir / "nlictr_raw_meterial_detail_vs07.csv")
 color_df = pd.read_csv("color_palette.csv")
 
 # 물동량 단위 조정 (천 톤)
@@ -247,7 +260,7 @@ custom_bbox = Bbox.from_extents(
 )
 
 # 6. 저장
-save_path = save_dir / "13_raw_materials_detail.jpg"
+save_path = save_dir / "07_raw_materials_detail.jpg"
 plt.savefig(
     save_path,
     dpi=300,

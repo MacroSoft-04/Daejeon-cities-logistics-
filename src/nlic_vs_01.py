@@ -7,7 +7,7 @@ from pathlib import Path
 import matplotlib.colors as mcolors
 
 # save directory
-base_dir = Path("./NLIC")
+base_dir = Path(".")
 save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -15,8 +15,8 @@ save_dir.mkdir(parents=True, exist_ok=True)
 data_dir = base_dir / "data"
 
 # 1. Load both dataframes
-df_ratios = pd.read_csv(data_dir / "Deajeon_grouping.csv")
-df_totals = pd.read_csv(data_dir / "Deajeon_yearly_total_amount.csv")
+df_ratios = pd.read_csv(data_dir / "nlic_dj_grouping_vs_01.csv")
+df_totals = pd.read_csv(data_dir / "nlic_dj_yearly_total_amount_vs_01.csv")
 
 # Convert totals to Millions
 df_totals["출발_백만"] = df_totals["총 출발량"] / 1_000_000
@@ -27,7 +27,7 @@ ko_ratio_cols = [c for c in df_ratios.columns if c.endswith("_비율")]
 en_ratio_cols = [c for c in df_ratios.columns if c.endswith("_ratio")]
 
 ko_labels = [c.replace("_비율", "") for c in ko_ratio_cols]
-en_labels = [c.replace("_ratio", "").replace("_"," ") for c in en_ratio_cols]
+en_labels = [c.replace("_ratio", "").replace("_", " ") for c in en_ratio_cols]
 
 
 plt.rcParams["font.family"] = "Malgun Gothic"
@@ -47,7 +47,7 @@ I18N = {
         "legend_title": "권역",
         "xlabel": "연도",
         "ylabel": "물동량 비율(%)",
-        "filename": "Deajeon_total_ratio_ko.jpg",
+        "filename": "01_dj_total_ratio_ko.jpg",
         "year_fmt": lambda yr: f"{yr}년",
     },
     "en": {
@@ -60,10 +60,11 @@ I18N = {
         "legend_title": "Region",
         "xlabel": "Year",
         "ylabel": "car freight flow ratio (%)",
-        "filename": "Deajeon_total_ratio_en.jpg",
+        "filename": "01_dj_total_ratio_en.jpg",
         "year_fmt": lambda yr: f"{yr}year",
     },
 }
+
 
 def generate_multilingual_plots(df_ratios, df_totals, save_dir):
     for lang in ["ko", "en"]:
@@ -76,9 +77,7 @@ def generate_multilingual_plots(df_ratios, df_totals, save_dir):
         plot_df_base = df_ratios.copy()
         plot_df_base["x_label"] = plot_df_base["연도"].apply(cfg["year_fmt"])
 
-        fig, axes = plt.subplots(
-            figsize=(20, 8), ncols=2, gridspec_kw={"wspace": 0.25}
-        )
+        fig, axes = plt.subplots(figsize=(20, 8), ncols=2, gridspec_kw={"wspace": 0.25})
         handles, labels = [], []
 
         for i, gubun in enumerate(["출발", "도착"]):
@@ -95,9 +94,9 @@ def generate_multilingual_plots(df_ratios, df_totals, save_dir):
             abs_cols = []
             for col in ratio_cols:
                 abs_col_name = f"{col}_abs"
-                filtered_df[abs_col_name] = (
-                    filtered_df[col] / 100
-                ) * filtered_df[total_col_m]
+                filtered_df[abs_col_name] = (filtered_df[col] / 100) * filtered_df[
+                    total_col_m
+                ]
                 abs_cols.append(abs_col_name)
 
             # 2. Build plotting DataFrame
@@ -225,6 +224,7 @@ def generate_multilingual_plots(df_ratios, df_totals, save_dir):
         save_path = save_dir / cfg["filename"]
         plt.savefig(save_path, dpi=300, bbox_inches="tight", pad_inches=0.3)
         plt.close()
+
 
 # Execute script
 generate_multilingual_plots(df_ratios, df_totals, save_dir)

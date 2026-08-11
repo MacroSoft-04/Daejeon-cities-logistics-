@@ -12,7 +12,7 @@ data_dir = base_dir / "data"
 save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
-file_path = data_dir / "kosis_ipi_clean2.csv"
+file_path = data_dir / "kosis_ipi_vs_04.csv"
 df = pd.read_csv(file_path)
 
 # 날짜 컬럼 datetime 변환
@@ -152,6 +152,5 @@ ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), frameon=True, facecolor="w
 plt.tight_layout()
 
 # 고해상도 이미지 저장
-save_path = save_dir / "9_dj_ipi_mth_trend.jpg"
+save_path = save_dir / "04_dj_ipi_mth_trend.jpg"
 plt.savefig(save_path, dpi=300, bbox_inches="tight")
-print(f"✅ 수정된 그래프가 성공적으로 저장되었습니다: {save_path}")
