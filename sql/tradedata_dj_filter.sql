@@ -18,11 +18,6 @@ rank_and_ratio_data AS (
             sales_by_sectional * 100.0 / SUM(sales_by_sectional) OVER (PARTITION BY year), 
             2
         ) AS ratio,
-        -- 연도 내 매출 기준 순위
-        ROW_NUMBER() OVER (
-            PARTITION BY year 
-            ORDER BY ABS(sales_by_sectional) DESC
-        ) AS rank_num
     FROM annual_section_sales
 )
 -- 3단계: 연도별 Top 10 부(Section)만 추출하여 정렬
