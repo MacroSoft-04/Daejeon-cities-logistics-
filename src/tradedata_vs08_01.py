@@ -26,7 +26,7 @@ data_dir.mkdir(parents=True, exist_ok=True)
 save_dir = base_dir / "output"
 
 # # load data
-file_path = data_dir / "tradedata_dj_2020_2025_rank_vs08.csv"
+file_path = data_dir / "tradedata_dj_2020_2025_rank_vs08_01.csv"
 df = pd.read_csv(file_path)
 
 # Plot Grouped Bar Chart
