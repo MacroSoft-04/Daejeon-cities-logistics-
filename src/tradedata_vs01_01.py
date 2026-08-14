@@ -21,12 +21,12 @@ plt.rc("font", family="Malgun Gothic")  # Windows: Malgun Gothic / Mac: AppleGot
 plt.rc("axes", unicode_minus=False)
 
 base_dir = Path(".")
-data_dir = base_dir / "data"
+data_dir = base_dir / "data/processed"
 data_dir.mkdir(parents=True, exist_ok=True)
 save_dir = base_dir / "output"
 
 # # load data
-file_path = data_dir / "tradedata_dj_2020_2025_rank_vs08_01.csv"
+file_path = data_dir / "tradedata_dj_2020_2025_rank_vs01_01.csv"
 df = pd.read_csv(file_path)
 
 # Plot Grouped Bar Chart
@@ -47,4 +47,4 @@ plt.gca().yaxis.set_major_formatter("{x:,.0f}")
 plt.legend(title="품목군", bbox_to_anchor=(1.02, 1), loc="upper left")
 
 plt.tight_layout()
-plt.savefig(save_dir / "08_01_grouped_bar_chart.jpg", dpi=300)
+plt.savefig(save_dir / "01_01_grouped_bar_chart.jpg", dpi=300)
