@@ -32,6 +32,13 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 df = read_kosis_long(SRC, id_cols=["행정구역별", "산업별"])
 df = df[df["산업별"] != "산업별"]
 
+df["산업별"] = (
+    df["산업별"]
+    .str.replace(",", " /", regex=False)
+    .str.replace('"', "", regex=False)
+    .str.strip()
+)
+df["행정구역별"] = df["행정구역별"].str.replace(" ", "", regex=False)
 # Index each series to the base year so metrics with different units can share
 # an axis; kept as a column rather than a separate file to avoid drift.
 base = (

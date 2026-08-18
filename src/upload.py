@@ -17,28 +17,24 @@ def upload_csv_to_db(file_name: str, table_name: str = None):
     if not db_password:
         raise ValueError(".env 파일에서 DB_PASSWORD를 찾을 수 없습니다.")
 
-    # 1. 경로 설정
     base_dir = Path(".")
-    csv_path = base_dir / "data" / file_name
+    csv_path = base_dir / "data/processed" / file_name
 
     if not csv_path.exists():
         print(f"❌ 에러: {csv_path} 파일이 존재하지 않습니다.")
         return
 
-    # 2. 테이블명 미지정 시 파일명(확장자 제외)을 기본값으로 사용
     if not table_name:
         table_name = csv_path.stem
 
-    # 3. 데이터 로드 및 DB 연결
     df = pd.read_csv(csv_path)
     password = quote_plus(db_password)
     engine = create_engine(
         f"mysql+pymysql://root:{password}@localhost:3306/mysql", echo=False
     )
 
-    # 4. DB 적재
     df.to_sql(name=table_name, con=engine, if_exists="replace", index=False)
-    print(f"✅ 성공: '{csv_path}' -> DB 테이블 '{table_name}' ({len(df)}건 적재 완료)")
+    print(f"success: '{csv_path}' -> DB table '{table_name}'")
 
 
 if __name__ == "__main__":
@@ -46,5 +42,5 @@ if __name__ == "__main__":
         target_file = sys.argv[1]
         upload_csv_to_db(target_file)
     else:
-        # 인자 없이 실행 시 기본 파일 업로드
-        upload_csv_to_db("tradedata_dj_2020_2026.csv")
+        # if no argument is given, upload based on the file name
+        upload_csv_to_db("kosis_estab_survey.csv")
