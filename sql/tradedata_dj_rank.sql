@@ -4,7 +4,7 @@ WITH annual_section_sales AS (
         year,
         section_name,
         SUM(sales) AS sales_by_sectional
-    FROM tradedata_dj_2020_2026
+    FROM tradedata_dj_2020_2025
     GROUP BY year, section_name
 ),
 rank_and_ratio_data AS (
@@ -33,7 +33,7 @@ SELECT
     ratio,
     rank_num
 FROM rank_and_ratio_data
-WHERE rank_num <= 5 AND year <= 2025
+WHERE rank_num <= 5 
 ORDER BY year ASC, rank_num ASC;
 
 

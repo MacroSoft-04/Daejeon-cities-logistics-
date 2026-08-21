@@ -12,7 +12,6 @@
     - tradedata_ragional_23.csv
     - tradedata_ragional_24.csv
     - tradedata_ragional_25.csv
-    - tradedata_ragional_26.csv
 * Data Cleaning:
 * Output: data/kosis_clean_ipi_long.csv
 ====================================================================
@@ -23,11 +22,10 @@ import numpy as np  # 안 써도 상관없지만 유지
 import pandas as pd
 
 base_dir = Path(".")
-data_dir = base_dir / "data"
+data_dir = base_dir / "data/raw"
 data_dir.mkdir(parents=True, exist_ok=True)
-save_dir = base_dir / "data"
 
-nums = [20, 21, 22, 23, 24, 25, 26]
+nums = [20, 21, 22, 23, 24, 25]
 dfs = []
 
 for num in nums:
@@ -64,8 +62,8 @@ if dfs:
         hs_col = hs_col.str.zfill(2)
 
         final_df["HS코드"] = hs_col
-    save_path = save_dir / "tradedata_dj_2020_2026_raw.csv"
+    save_path = data_dir / "tradedata_dj_2020_2025_raw.csv"
     final_df.to_csv(save_path, index=False, encoding="utf-8-sig")
-    print(f"✅ 파일 저장 완료: {save_path.resolve()}")
+    print(f"file saved: {save_path.resolve()}")
 else:
-    print("⚠️ 불러올 수 있는 CSV 파일이 없습니다. 파일 경로 및 파일명을 확인해 주세요.")
+    print("there is no file to load. check the file path and file name.")

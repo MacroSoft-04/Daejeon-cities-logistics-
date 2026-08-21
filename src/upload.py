@@ -43,4 +43,4 @@ if __name__ == "__main__":
         upload_csv_to_db(target_file)
     else:
         # if no argument is given, upload based on the file name
-        upload_csv_to_db("kosis_estab_survey.csv")
+        upload_csv_to_db("tradedata_dj_2020_2025.csv")

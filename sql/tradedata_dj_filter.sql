@@ -1,28 +1,36 @@
+-- ====================================================================
+-- Author: Minseo Kim
+-- Source: tradedata_dj_2020_2025 (관세청 무역통계, HS 부/류별 수출입)
+-- Output: year x [기계 및 전기기기 | 수송기기 | 기타] with export/import
+--         totals, shares, and the label material for the 기타 bucket.
+-- ====================================================================
+
 WITH base_data AS (
-    -- 1단계: 연도 및 원본 품목(orig_section)별 매출액 1차 합산 + 재분류 명칭 부여
-    SELECT 
+    SELECT
         year,
         section_name AS orig_section,
-        CASE 
+        CASE
             WHEN section_name IN ('기계 및 전기기기', '수송기기') THEN section_name
-            ELSE '기타' 
+            ELSE '기타'
         END AS section_name,
-        SUM(sales) AS section_sales
-    FROM tradedata_dj_2020_2026
-    WHERE year <= 2025
+        SUM(export_usd) AS export_usd,
+        SUM(import_usd) AS import_usd
+    FROM tradedata_dj_2020_2025
     GROUP BY year, section_name
 ),
 
 ranked_data AS (
-    -- 2단계: '기타' 그룹 내부에서 original section별 매출 순위 및 포함된 품목 수 산출
-    SELECT 
+    -- Rank and count within the collapsed group so the chart legend can name
+    -- what the 기타 bucket holds without re-reading the ungrouped source.
+    SELECT
         year,
         orig_section,
         section_name,
-        section_sales,
+        export_usd,
+        import_usd,
         ROW_NUMBER() OVER (
-            PARTITION BY year, section_name 
-            ORDER BY section_sales DESC
+            PARTITION BY year, section_name
+            ORDER BY export_usd DESC
         ) AS sub_rank,
         COUNT(*) OVER (
             PARTITION BY year, section_name
@@ -31,43 +39,31 @@ ranked_data AS (
 ),
 
 aggregated_data AS (
-    -- 3단계: 재분류된 그룹(section_name)별 총매출 합산 및 기타 정보 추출
-    SELECT 
+    SELECT
         year,
         section_name,
-        SUM(section_sales) AS sales_by_sectional,
-        -- 기타 그룹일 때만 개수 및 1위 품목명 표시 (그 외는 NULL)
+        SUM(export_usd) AS export_usd,
+        SUM(import_usd) AS import_usd,
         MAX(CASE WHEN section_name = '기타' THEN sub_section_count END) AS other_section_count,
         MAX(CASE WHEN section_name = '기타' AND sub_rank = 1 THEN orig_section END) AS other_top_section
     FROM ranked_data
     GROUP BY year, section_name
-),
-
-ratio_data AS (
-    -- 4단계: 연도별 전체 매출 대비 비중(ratio) 계산
-    SELECT 
-        year,
-        section_name,
-        sales_by_sectional,
-        ROUND(
-            sales_by_sectional * 100.0 / SUM(sales_by_sectional) OVER (PARTITION BY year), 
-            2
-        ) AS ratio,
-        other_section_count,
-        other_top_section
-    FROM aggregated_data
 )
 
--- 5단계: 최종 출력 및 정렬
-SELECT 
+SELECT
     year,
     section_name,
-    sales_by_sectional,
-    ratio,
+    export_usd,
+    import_usd,
+    export_usd - import_usd AS balance_usd,
+    -- Exports and imports are shared against their own yearly totals; a single
+    -- combined denominator would make each side look smaller than it is.
+    ROUND(export_usd * 100.0 / SUM(export_usd) OVER (PARTITION BY year), 2) AS export_ratio,
+    ROUND(import_usd * 100.0 / SUM(import_usd) OVER (PARTITION BY year), 2) AS import_ratio,
     other_section_count,
     other_top_section
-FROM ratio_data
-ORDER BY 
+FROM aggregated_data
+ORDER BY
     year ASC,
-    CASE WHEN section_name = '기타' THEN 1 ELSE 0 END ASC, -- '기타'는 1, 나머지는 0으로 두어 맨 뒤로 보냄
-    ratio DESC;
+    CASE WHEN section_name = '기타' THEN 1 ELSE 0 END ASC,
+    export_ratio DESC;

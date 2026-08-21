@@ -23,14 +23,15 @@ plt.rc("font", family="Malgun Gothic")
 plt.rc("axes", unicode_minus=False)
 
 base_dir = Path(".")
-data_dir = base_dir / "data"
+data_dir = base_dir / "data/processed"
 save_dir = base_dir / "output"
 save_dir.mkdir(parents=True, exist_ok=True)
 
-df = pd.read_csv(data_dir / "tradedata_dj_2020_2025_grouped_vs08.csv")
+df = pd.read_csv(data_dir / "tradedata_dj_2020_2025.csv")
 
-# Fixed panel order: the two growth-relevant groups first, residual last.
-SECTION_ORDER = df["section_name"].unique()
+MAIN = ["기계 및 전기기기", "수송기기"]
+df["group"] = df["section_name"].where(df["section_name"].isin(MAIN), "기타")
+SECTION_ORDER = ["기계 및 전기기기", "수송기기", "기타"]
 
 
 def pivot_by_year(frame: pd.DataFrame, value_col: str) -> pd.DataFrame:
@@ -190,7 +191,7 @@ ax2.legend(loc="upper left")
 
 fig.tight_layout()
 
-save_path = save_dir / "08_stacked_and_transport_focus.jpg"
+save_path = save_dir / "08_stacked_and_transport_focus_(1).jpg"
 fig.savefig(save_path, dpi=300, bbox_inches="tight")
 plt.close(fig)
 print(
