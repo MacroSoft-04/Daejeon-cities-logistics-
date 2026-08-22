@@ -30,6 +30,10 @@ save_dir.mkdir(parents=True, exist_ok=True)
 df = pd.read_csv(data_dir / "tradedata_dj_2020_2025.csv")
 
 MAIN = ["기계 및 전기기기", "수송기기"]
+others = df[~df["section_name"].isin(MAIN)]
+ranked = others.groupby("section_name")["export_usd"].sum().sort_values(ascending=False)
+other_label_text = f"기타 ({ranked.index[0]} 등 {len(ranked)}개 품목)"
+df["기타"] = df["section_name"].isin(others["section_name"])
 df["group"] = df["section_name"].where(df["section_name"].isin(MAIN), "기타")
 SECTION_ORDER = ["기계 및 전기기기", "수송기기", "기타"]
 
@@ -41,8 +45,12 @@ def pivot_by_year(frame: pd.DataFrame, value_col: str) -> pd.DataFrame:
     ).sort_index()[SECTION_ORDER]
 
 
-sales_grouped = pivot_by_year(df, "sales_by_sectional")
-ratio_grouped = pivot_by_year(df, "ratio")  # already stored as percent (0-100)
+sales_grouped = (
+    df.groupby(["year", "group"])["export_usd"].sum().unstack()[SECTION_ORDER]
+)
+ratio_grouped = (
+    df.groupby(["year", "group"])["export_ratio"].sum().unstack()[SECTION_ORDER]
+)
 
 # extract the additional information for the "기타" section for the legend
 other_rows = df[df["section_name"] == "기타"].sort_values("year")
@@ -191,7 +199,7 @@ ax2.legend(loc="upper left")
 
 fig.tight_layout()
 
-save_path = save_dir / "08_stacked_and_transport_focus_(1).jpg"
+save_path = save_dir / "02_stacked_and_transport_focus.jpg"
 fig.savefig(save_path, dpi=300, bbox_inches="tight")
 plt.close(fig)
 print(
