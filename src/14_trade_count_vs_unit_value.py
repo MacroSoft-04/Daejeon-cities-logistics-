@@ -14,10 +14,10 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from chart_utils import PALETTE, save, use_korean_font
-from kosis_utils import PROJECT_ROOT
+from utils_chart import PALETTE, save, use_korean_font
+from utils_kosis import PROJECT_ROOT
 
-SRC = PROJECT_ROOT / "data/raw/customs_sido_trade_daejeon.csv"
+SRC = PROJECT_ROOT / "data/processed/customs_sido_trade_daejeon.csv"
 # The API reports amounts in thousands of USD.
 THOUSAND_USD = 1_000
 # The latest year is still being accumulated; its half-size totals would read
@@ -82,6 +82,12 @@ for ax, panel in zip(axes, panels):
         ax.spines[side].set_visible(False)
 
 axes[0].set_ylabel(f"지수 ({base}년=100)")
+fig.suptitle(
+    "대전 수출입 신고 건수와 건당 금액 추이 (2020~2025)",
+    fontsize=14,
+    fontweight="bold",
+    y=1.05,
+)
 
 span_x = years[-1] - years[0]
 for ax in axes:

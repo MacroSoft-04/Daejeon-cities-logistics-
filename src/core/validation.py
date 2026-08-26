@@ -14,12 +14,12 @@
 import sys
 
 import pandas as pd
-from kosis_utils import PROJECT_ROOT, load_multiheader_csv, split_industry
+from utils_kosis import PROJECT_ROOT, load_multiheader_csv, split_industry
 
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = []
+TARGETS = ["trade_data"]
 
 # Shared with the 09 chart; the stability check has to filter the same way the
 # chart does, or it would be vouching for a different selection.
@@ -40,12 +40,75 @@ DATASETS = {
     },
     "mining_mfg": {
         "raw": RAW / "시도_시군구__산업분류별_주요지표_10명_이상__20260814140423.csv",
-        "long": PROCESSED / "mining_mfg_by_sido_long.csv",
+        "processed": PROCESSED / "mining_mfg_by_sido_long.csv",
         "id_cols": ["시도별", "산업별"],
         "sample": ("시도별", "대전광역시"),
         "sample_year": 2021,
     },
+    "trade_data": {
+        "raw": RAW / "tradedata_dj_2020_2025_raw.csv",
+        "processed": PROCESSED / "tradedata_dj_2020_2025.csv",
+        "sample_year": 2020,
+    },
 }
+
+
+def check_trade_data() -> bool:
+    """Verify the HS chapter-to-section mapping and the published shares.
+
+    The section mapping is a hand-written CASE block, so one shifted boundary
+    would silently move a whole commodity group into the wrong bucket.
+    """
+    RATIO_TOLERANCE = 0.1
+    print(f"\n{'=' * 60}\ntrade_data\n{'=' * 60}")
+
+    processed = pd.read_csv(DATASETS["trade_data"]["processed"])
+    print("1) 자동 추론 dtype:")
+    print(processed.dtypes)
+
+    # hs_section/hs_chapter are zero-padded codes. If pandas inferred them as
+    # integers the leading zero is already gone, so the padding has to be
+    # restored before any string comparison.
+    code_cols = ["hs_section", "hs_chapter"]
+    inferred_as_number = [
+        c for c in code_cols if pd.api.types.is_numeric_dtype(processed[c])
+    ]
+    if inferred_as_number:
+        print(
+            f"\n2) code columns read as numeric (leading zero lost): {inferred_as_number}"
+        )
+        print(f"   -> re-reading with dtype=str for {code_cols}")
+
+    df = pd.read_csv(
+        DATASETS["trade_data"]["processed"], dtype={c: str for c in code_cols}
+    )
+
+    # One row per section shows the chapter range each mapping produced.
+    print("\n3) chapter ranges:")
+    ranges = df.groupby(["hs_section", "section_name"]).agg(
+        chapter_min=("hs_chapter", "min"),
+        chapter_max=("hs_chapter", "max"),
+        chapter_cnt=("hs_chapter", "nunique"),
+    )
+    print(ranges.reset_index().to_string(index=False))
+
+    ratio_sums = df.groupby("year")["export_ratio"].sum().round(2)
+    print(f"\n4-1) 연도별 수출 비중 합계: {ratio_sums.to_dict()}")
+
+    recomputed = df.groupby("year")["export_usd"].transform(lambda s: s / s.sum() * 100)
+    print(
+        f"\n4-2) 연도별 수출 비중 재계산: {(recomputed.groupby(df["year"]).sum() - 100).abs().max()}"
+    )
+
+    # Chapters must not straddle two sections; that would mean the CASE
+    # boundaries overlap.
+    straddling = df.groupby("hs_chapter")["hs_section"].nunique().gt(1).sum()
+    print(f"\n5) 두 부에 걸친 류: {straddling}")
+
+    sums = df.groupby("year")["export_usd"].sum()
+    print(f"\n6) 연도별 수출 합계: {sums.to_dict()}")
+
+    return straddling == 0 and (ratio_sums - 100).abs().max() < RATIO_TOLERANCE
 
 
 def check_share_stability() -> bool:
@@ -293,6 +356,7 @@ CHECKS = {
     "gap_stability": check_gap_stability,
     "total_row": total_row,
     "share_stability": check_share_stability,
+    "trade_data": check_trade_data,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)

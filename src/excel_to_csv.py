@@ -1,14 +1,17 @@
 from pathlib import Path
 import pandas as pd
 
-data_dir = Path("./data")
+data_dir = Path("./data/raw")
 
-# data 폴더 안의 모든 .xlsx 파일 검색 후 CSV 변환
-for excel_file in data_dir.glob("*.xlsx"):
-    df = pd.read_excel(excel_file)
+for excel_file in data_dir.glob("*.xls*"):
+    print(f"Processing: {excel_file.name}")
 
-    # 확장자만 .csv로 바꿔서 저장 경로 생성
+    try:
+        tables = pd.read_html(excel_file, encoding="euc-kr", flavor="lxml")
+        df = tables[0]
+    except Exception:
+        df = pd.read_excel(excel_file, engine="xlrd")
+
     csv_path = excel_file.with_suffix(".csv")
-    df.to_csv(csv_path, index=False, encoding="utf-8-sig")
-
-    print(f"✅ 변환 완료: {csv_path.name}")
+    df.to_csv(csv_path, index=False, encoding="utf-8")
+    print(f"Successfully converted:: {csv_path.name}")

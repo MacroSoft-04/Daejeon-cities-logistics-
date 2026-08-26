@@ -9,7 +9,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 
-from kosis_utils import PROJECT_ROOT
+from utils_kosis import PROJECT_ROOT
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 

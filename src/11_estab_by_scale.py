@@ -17,8 +17,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from chart_utils import PALETTE, save, use_korean_font
-from kosis_utils import PROJECT_ROOT
+from utils_chart import PALETTE, save, use_korean_font
+from utils_kosis import PROJECT_ROOT
 
 ESTAB_SRC = PROJECT_ROOT / "data/processed/kosis_estab_survey.csv"
 MFG_SRC = PROJECT_ROOT / "data/processed/kosis_mining_mfg.csv"

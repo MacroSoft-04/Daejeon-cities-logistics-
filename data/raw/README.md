@@ -24,3 +24,5 @@
 평균 기준과 완전히 일치했다.
 
 재현: `python src/validation.py gap_stability`
+
+HS 부 매핑은 관세청 분류 체계를 참조해 SQL CASE 문으로 구현했으며, 독립적인 기준표와의 대조는 수행하지 않았다.

@@ -16,7 +16,7 @@
 
 from pathlib import Path
 
-from kosis_utils import read_kosis_long
+from utils_kosis import read_kosis_long
 
 base_dir = Path("./data")
 SRC = base_dir / "raw/시도_시군구__산업분류별_주요지표_10명_이상__20260814140423.csv"
