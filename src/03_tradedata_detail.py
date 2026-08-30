@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from utils_chart import PALETTE, save, use_korean_font
-from utils_kosis import PROJECT_ROOT
+from utils_validation import PROJECT_ROOT
 
 SRC = PROJECT_ROOT / "data/processed/tradedata_dj_2020_2025.csv"
 MILLION = 1_000  # source unit is thousand USD

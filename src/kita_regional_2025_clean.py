@@ -36,6 +36,7 @@ merged = amount.merge(
 )
 
 merged = merged.rename(columns={"수지": "수지_금액", "차이": "수지_중량"})
+merged = merged[merged["지역명"] != "총계"].copy()
 
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 merged.to_csv(

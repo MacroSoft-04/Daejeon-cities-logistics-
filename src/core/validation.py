@@ -14,12 +14,12 @@
 import sys
 
 import pandas as pd
-from utils_kosis import PROJECT_ROOT, load_multiheader_csv, split_industry
+from utils_validation import PROJECT_ROOT, load_multiheader_csv, split_industry
 
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["trade_data"]
+TARGETS = ["kita regional"]
 
 # Shared with the 09 chart; the stability check has to filter the same way the
 # chart does, or it would be vouching for a different selection.
@@ -28,6 +28,8 @@ NATIONAL = "전국"
 TOTAL_ROW = "전체 산업"
 MIN_GAP = 1.0
 TOTAL_TOLERANCE = 0.01  # percent
+KITA_HEADER_ROWS = (2, 3)
+KITA_TOTAL_ROW = "총계"
 
 DATASETS = {
     "estab": {
@@ -50,7 +52,49 @@ DATASETS = {
         "processed": PROCESSED / "tradedata_dj_2020_2025.csv",
         "sample_year": 2020,
     },
+    "kita_regional_summary": {
+        "raw_1": RAW
+        / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_금액.csv",
+        "raw_2": RAW
+        / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_중량.csv",
+        "processed": PROCESSED / "kita_regional_summary.csv",
+    },
 }
+
+
+def check_kita_regional_summary() -> bool:
+    """Report whether the K-stat regional summary survived cleaning intact."""
+    print(f"\n{'=' * 60}\nkita_regional_summary\n{'=' * 60}")
+
+    config = DATASETS["kita_regional_summary"]
+    raw_value = load_multiheader_csv(config["raw_1"], header_rows=KITA_HEADER_ROWS)
+    raw_weight = load_multiheader_csv(config["raw_2"], header_rows=KITA_HEADER_ROWS)
+    processed = pd.read_csv(config["processed"])
+
+    value_regions = set(raw_value["지역명"]) - {KITA_TOTAL_ROW}
+    weight_regions = set(raw_weight["지역명"]) - {KITA_TOTAL_ROW}
+    regions = value_regions & weight_regions
+
+    print(
+        f"regions: value={len(value_regions)} weight={len(weight_regions)} shared={len(regions)}"
+    )
+
+    if value_regions ^ weight_regions:
+        print(f"  region mismatch: {sorted(value_regions ^ weight_regions)}")
+
+    processed_regions = set(processed["지역명"]) - {KITA_TOTAL_ROW}
+    dropped = regions - processed_regions
+
+    if dropped:
+        print(f"  dropped in processing: {sorted(dropped)}")
+
+    years = sorted(processed["연도"].unique())
+    expected_rows = len(processed_regions) * len(years)
+    print(
+        f"rows: {len(processed)} (regions {len(processed_regions)} x years {len(years)} = {expected_rows})"
+    )
+
+    return not dropped and len(processed) == expected_rows
 
 
 def check_trade_data() -> bool:
@@ -357,6 +401,7 @@ CHECKS = {
     "total_row": total_row,
     "share_stability": check_share_stability,
     "trade_data": check_trade_data,
+    "kita regional": check_kita_regional_summary,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)

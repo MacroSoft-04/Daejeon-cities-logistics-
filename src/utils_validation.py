@@ -15,20 +15,22 @@
 
 import re
 from pathlib import Path
-
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MISSING_MARKERS = {"-", "X", "...", "▽", "e", "p"}
 
 
-def load_multiheader_csv(file_path, sep: str = "_") -> pd.DataFrame:
-    """Load a two-row-header CSV, flattening the header into one level.
+def load_multiheader_csv(
+    file_path, sep: str = "_", header_rows: tuple[int, int] = (0, 1)
+) -> pd.DataFrame:
+    """Load a CSV whose header spans two rows, flattening it into one level.
 
-    KOSIS repeats the year across columns and puts the metric name in a second
-    row, so both levels are needed to identify a column.
+    KOSIS and K-stat both repeat a group label (year) across columns and put the
+    metric name in a second row, so both levels are needed to identify a column.
+    K-stat prepends title and query-condition rows, hence `header_rows`.
     """
-    df = pd.read_csv(file_path, header=[0, 1], dtype=str)
+    df = pd.read_csv(file_path, header=list(header_rows), dtype=str)
     columns = []
     for top, bottom in df.columns:
         top_str, bottom_str = str(top).strip(), str(bottom).strip()

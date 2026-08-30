@@ -20,7 +20,7 @@ from urllib.request import urlopen
 
 import pandas as pd
 
-from utils_kosis import PROJECT_ROOT
+from utils_validation import PROJECT_ROOT
 
 ENDPOINT = "https://apis.data.go.kr/1220000/sidotrade/getSidotradeList"
 SIDO_CODE = "30"  # 대전광역시

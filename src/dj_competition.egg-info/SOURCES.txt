@@ -1,0 +1,8 @@
+pyproject.toml
+src/core/html_open.py
+src/core/sql_loader.py
+src/core/validation.py
+src/dj_competition.egg-info/PKG-INFO
+src/dj_competition.egg-info/SOURCES.txt
+src/dj_competition.egg-info/dependency_links.txt
+src/dj_competition.egg-info/top_level.txt

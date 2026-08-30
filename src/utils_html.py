@@ -1,6 +1,8 @@
 import time
 from typing import Callable, Optional, Dict
-from playwright.sync_api import sync_playwright, Page
+from contextlib import contextmanager
+from typing import Generator
+from playwright.sync_api import sync_playwright, Page, BrowserContext
 
 
 def get_html(
