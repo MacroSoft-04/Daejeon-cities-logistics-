@@ -143,10 +143,31 @@ def split_panel(panel):
 ID_COLUMNS = ["지역명", "연도", "월", "연월"]
 
 
+def column_sort_key(col):
+    has_export = "수출" in col
+    has_import = "수입" in col
+
+    if has_export and not has_import:
+        return 0
+    elif has_import and not has_export:
+        return 1
+    elif has_export and has_import:
+        return 3
+    else:
+        return 2
+
+
 def reorder_columns(df):
     """Identifiers first; keep any remaining measure columns in their original order."""
     front = [c for c in ID_COLUMNS if c in df.columns]
-    return df[front + [c for c in df.columns if c not in front]]
+    remaining = [c for c in df.columns if c not in front]
+
+    remaining = sorted(
+        remaining,
+        key=column_sort_key,
+    )
+
+    return df[front + remaining]
 
 
 def remove_columns(df):
