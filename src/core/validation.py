@@ -14,12 +14,12 @@
 import sys
 
 import pandas as pd
-from utils_validation import PROJECT_ROOT, load_multiheader_csv, split_industry
+from utils_validate_data import PROJECT_ROOT, load_multiheader_csv, split_industry
 
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita regional"]
+TARGETS = ["kita merged"]
 
 # Shared with the 09 chart; the stability check has to filter the same way the
 # chart does, or it would be vouching for a different selection.
@@ -52,14 +52,47 @@ DATASETS = {
         "processed": PROCESSED / "tradedata_dj_2020_2025.csv",
         "sample_year": 2020,
     },
-    "kita_regional_summary": {
+    "kita": {
         "raw_1": RAW
         / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_금액.csv",
         "raw_2": RAW
         / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_중량.csv",
-        "processed": PROCESSED / "kita_regional_summary.csv",
+        "sample": PROCESSED / "kita_regional_2025.csv",
+        "merged_yearly": PROCESSED / "kita_regional_yearly.csv",
     },
 }
+
+
+def check_kita_merged() -> bool:
+    """Report whether the merged yearly sheet survived cleaning intact."""
+    print(f"\n{'=' * 60}\nkita_merged\n{'=' * 60}")
+
+    config = DATASETS["kita"]
+    merged = pd.read_csv(config["merged_yearly"])
+
+    def column_sort_key(col):
+        if "수출" in col and "수입" not in col:
+            return "export"
+        elif "수입" in col and "수출" not in col:
+            return "import"
+        else:
+            return "other"
+
+    sorted_columns = pd.DataFrame(
+        {
+            "export": pd.Series(
+                [col for col in merged.columns if column_sort_key(col) == "export"]
+            ),
+            "import": pd.Series(
+                [col for col in merged.columns if column_sort_key(col) == "import"]
+            ),
+            "other": pd.Series(
+                [col for col in merged.columns if column_sort_key(col) == "other"]
+            ),
+        }
+    )
+
+    print(sorted_columns)
 
 
 def check_kita_regional_summary() -> bool:
@@ -69,7 +102,7 @@ def check_kita_regional_summary() -> bool:
     config = DATASETS["kita_regional_summary"]
     raw_value = load_multiheader_csv(config["raw_1"], header_rows=KITA_HEADER_ROWS)
     raw_weight = load_multiheader_csv(config["raw_2"], header_rows=KITA_HEADER_ROWS)
-    processed = pd.read_csv(config["processed"])
+    processed = pd.read_csv(config["sample"])
 
     value_regions = set(raw_value["지역명"]) - {KITA_TOTAL_ROW}
     weight_regions = set(raw_weight["지역명"]) - {KITA_TOTAL_ROW}
@@ -402,6 +435,7 @@ CHECKS = {
     "share_stability": check_share_stability,
     "trade_data": check_trade_data,
     "kita regional": check_kita_regional_summary,
+    "kita merged": check_kita_merged,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)

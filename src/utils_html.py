@@ -17,7 +17,13 @@ def get_html(
     Generic utility function to fetch fully rendered HTML across multiple websites.
     """
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless, args=["--start-maximized"])
+        browser = p.chromium.launch(
+            headless=headless,
+            args=[
+                "--start-maximized",
+                "--disable-features=Translate",
+            ],
+        )
 
         headers = custom_headers or {}
         if referer_url:

@@ -8,10 +8,9 @@ RAW_DIR = Path("data/raw")
 PROCESSED_DIR = Path("data/processed")
 MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly.csv"
 YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly.csv"
-SUMMARY_PATH = PROCESSED_DIR / "kita_regional_summary.csv"
+SUMMARY_PATH = PROCESSED_DIR / "kita_regional_2025.csv"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 FILENAME_PATTERN = re.compile(r"kita_monthly_(?P<region>.+?)_(?P<stamp>\d{8})")
-TOLERANCE = 10
 NATIONAL_ALIAS = {"전국": "총계"}
 
 
@@ -138,8 +137,6 @@ def split_panel(panel):
         frame["수입중량_천톤"] = frame["수입_중량"] / 1_000_000
         frame["수출단가_USD_kg"] = frame["수출_금액"] * 1_000 / frame["수출_중량"]
         frame["수입단가_USD_kg"] = frame["수입_금액"] * 1_000 / frame["수입_중량"]
-    monthly = monthly.drop(columns=["년월", "집계단위"])
-    yearly = yearly.drop(columns=["년월", "집계단위", "월"])
     return monthly, yearly
 
 
@@ -150,6 +147,19 @@ def reorder_columns(df):
     """Identifiers first; keep any remaining measure columns in their original order."""
     front = [c for c in ID_COLUMNS if c in df.columns]
     return df[front + [c for c in df.columns if c not in front]]
+
+
+def remove_columns(df):
+    columns = [
+        "년월",
+        "집계단위",
+        "월",
+        "수출_금액",
+        "수입_금액",
+        "수출_중량",
+        "수입_중량",
+    ]
+    return df.drop(columns=columns, errors="ignore")
 
 
 if __name__ == "__main__":
@@ -165,9 +175,16 @@ if __name__ == "__main__":
 
     panel = add_balance_columns(panel)
     monthly, yearly = split_panel(panel)
+
     compare_regions(yearly, YEARLY_PATH.name)
+
     monthly = reorder_columns(monthly).sort_values(["지역명", "연월"])
     yearly = reorder_columns(yearly).sort_values(["지역명", "연도"])
+
+    monthly = remove_columns(monthly)
+    yearly = remove_columns(yearly)
+
     monthly.to_csv(MONTHLY_PATH, index=False, encoding="utf-8-sig")
     yearly.to_csv(YEARLY_PATH, index=False, encoding="utf-8-sig")
+
     print(f"\nmonthly {len(monthly)} rows, yearly {len(yearly)} rows")

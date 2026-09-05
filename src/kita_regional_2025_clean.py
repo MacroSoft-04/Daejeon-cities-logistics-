@@ -1,3 +1,18 @@
+"""
+====================================================================
+* Author: Minseo Kim
+* Purpose: Select comparison regions for the Daejeon trade analysis.
+* Data Source:
+    - stat.kita.net/stat/kts/prod/ProdWholeList.screen
+    - data/raw/지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_금액.csv
+    - data/raw/지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_중량.csv
+* Data Processing:
+    - merge 금액 and 중량 files, reshape to long format
+* Output:
+    - data/processed/kita_regional_2025.csv
+====================================================================
+"""
+
 from pathlib import Path
 import pandas as pd
 
@@ -40,6 +55,6 @@ merged = merged[merged["지역명"] != "총계"].copy()
 
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 merged.to_csv(
-    PROCESSED_DIR / "kita_regional_summary.csv", index=False, encoding="utf-8-sig"
+    PROCESSED_DIR / "kita_regional_2025.csv", index=False, encoding="utf-8-sig"
 )
 print(f"Saved {len(merged)} rows for {merged['지역명'].nunique()} regions")

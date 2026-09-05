@@ -23,7 +23,9 @@ PANELS = [
 
 last_complete = YEARLY["연도"].max() - 1
 
-national = YEARLY[YEARLY["연도"] <= last_complete]
+national = YEARLY[
+    (YEARLY["지역명"] == "전국") & (YEARLY["연도"] <= last_complete)
+].copy()
 
 y_min, y_max = national["연도"].min(), national["연도"].max()
 
