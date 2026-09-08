@@ -19,7 +19,7 @@
 
 from pathlib import Path
 
-from utils_validate_data import read_kosis_long
+from core.utils_validate_data import read_kosis_long
 
 base_dir = Path("./data")
 SRC = base_dir / "raw/시도·산업별_사업체수__종사자수_및_매출액_’20___20260815082431.csv"

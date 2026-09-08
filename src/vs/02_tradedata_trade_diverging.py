@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from utils_chart import PALETTE, save, use_korean_font
-from utils_validate_data import PROJECT_ROOT
+from core.utils_validate_data import PROJECT_ROOT
 
 SRC = PROJECT_ROOT / "data/processed/tradedata_dj_2020_2025.csv"
 GROUPS = ["기계 및 전기기기", "수송기기", "화학공업 제품", "기타"]

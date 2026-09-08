@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from utils_chart import PALETTE, save, use_korean_font
-from utils_validate_data import PROJECT_ROOT
+from core.utils_validate_data import PROJECT_ROOT
 
 SRC = PROJECT_ROOT / "data/processed/customs_sido_trade_daejeon.csv"
 # The API reports amounts in thousands of USD.

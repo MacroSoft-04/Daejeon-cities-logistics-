@@ -12,14 +12,24 @@
 """
 
 import sys
-
+import numpy as np
 import pandas as pd
-from utils_validate_data import PROJECT_ROOT, load_multiheader_csv, split_industry
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(PROJECT_ROOT))
+
+from utils_validate_data import (
+    load_multiheader_csv,
+    split_industry,
+)
 
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita merged"]
+TARGETS = ["kita_balance"]
+print("PROJECT_ROOT:", PROJECT_ROOT)
+print("RAW:", RAW)
 
 # Shared with the 09 chart; the stability check has to filter the same way the
 # chart does, or it would be vouching for a different selection.
@@ -29,7 +39,6 @@ TOTAL_ROW = "전체 산업"
 MIN_GAP = 1.0
 TOTAL_TOLERANCE = 0.01  # percent
 KITA_HEADER_ROWS = (2, 3)
-KITA_TOTAL_ROW = "총계"
 
 DATASETS = {
     "estab": {
@@ -61,6 +70,41 @@ DATASETS = {
         "merged_yearly": PROCESSED / "kita_regional_yearly.csv",
     },
 }
+
+
+def check_kita_balance() -> bool:
+    print(f"\n{'=' * 60}\nkita_balance\n{'=' * 60}")
+
+    df = pd.read_csv(DATASETS["kita"]["merged_yearly"])
+
+    calculated_balance = df["수출액_백만불"] - df["수입액_백만불"]
+
+    value_balance_ok = np.allclose(
+        df["수지_금액"],
+        calculated_balance,
+        atol=TOTAL_TOLERANCE,
+        equal_nan=True,
+    )
+
+    print(f"Value balance valid: {value_balance_ok}")
+
+    if not value_balance_ok:
+        check = df.copy()
+
+        check["금액_수지_계산값"] = (
+            check["수출액_백만불"] - check["수입액_백만불"]
+        ) * 1_000
+
+        check["금액_수지_차이"] = check["수지_금액"] - check["금액_수지_계산값"]
+
+        print("\nLargest value balance differences:")
+        print(
+            check[
+                ["지역명", "연도", "수지_금액", "금액_수지_계산값", "금액_수지_차이"]
+            ].sample(10)
+        )
+
+    return value_balance_ok
 
 
 def check_kita_merged() -> bool:
@@ -95,39 +139,63 @@ def check_kita_merged() -> bool:
     print(sorted_columns)
 
 
-def check_kita_regional_summary() -> bool:
-    """Report whether the K-stat regional summary survived cleaning intact."""
-    print(f"\n{'=' * 60}\nkita_regional_summary\n{'=' * 60}")
+def check_kita_regional_2025() -> bool:
+    """Report whether the K-stat regional 2025 survived cleaning intact."""
+    print(f"\n{'=' * 60}\nkita_regional_2025\n{'=' * 60}")
 
-    config = DATASETS["kita_regional_summary"]
+    config = DATASETS["kita"]
     raw_value = load_multiheader_csv(config["raw_1"], header_rows=KITA_HEADER_ROWS)
     raw_weight = load_multiheader_csv(config["raw_2"], header_rows=KITA_HEADER_ROWS)
     processed = pd.read_csv(config["sample"])
+    merged_yearly = pd.read_csv(config["merged_yearly"])
 
-    value_regions = set(raw_value["지역명"]) - {KITA_TOTAL_ROW}
-    weight_regions = set(raw_weight["지역명"]) - {KITA_TOTAL_ROW}
+    print("< columns >")
+
+    for name, df in {
+        "raw_value": raw_value,
+        "raw_weight": raw_weight,
+        "processed": processed,
+    }.items():
+        balance_cols = [col for col in df.columns if "수지" in str(col)]
+
+        print(f"{name}: {balance_cols}")
+
+    value_regions = set(raw_value["지역명"])
+    weight_regions = set(raw_weight["지역명"])
     regions = value_regions & weight_regions
 
-    print(
-        f"regions: value={len(value_regions)} weight={len(weight_regions)} shared={len(regions)}"
-    )
+    processed_regions = set(processed["지역명"])
+    merged_yearly_regions = set(merged_yearly["지역명"])
 
-    if value_regions ^ weight_regions:
-        print(f"  region mismatch: {sorted(value_regions ^ weight_regions)}")
+    mismatch_value = value_regions ^ processed_regions
+    mismatch_weight = weight_regions ^ processed_regions
+    mismatch_merged = merged_yearly_regions - processed_regions
+    mismatch_region = processed_regions - merged_yearly_regions
 
-    processed_regions = set(processed["지역명"]) - {KITA_TOTAL_ROW}
-    dropped = regions - processed_regions
+    print("\n< regions >")
 
-    if dropped:
-        print(f"  dropped in processing: {sorted(dropped)}")
+    if mismatch_value:
+        print(f"value/processed mismatch: {sorted(mismatch_value)}")
+
+    if mismatch_weight:
+        print(f"weight/processed mismatch: {sorted(mismatch_weight)}")
+
+    if mismatch_merged:
+        print(f"processed mismatch: {sorted(mismatch_merged)}")
+
+    if mismatch_region:
+        print(f"regional mismatch: {sorted(mismatch_region)}")
 
     years = sorted(processed["연도"].unique())
-    expected_rows = len(processed_regions) * len(years)
-    print(
-        f"rows: {len(processed)} (regions {len(processed_regions)} x years {len(years)} = {expected_rows})"
-    )
+    expected_rows = len(regions) * len(years)
 
-    return not dropped and len(processed) == expected_rows
+    print(
+        f"rows: {len(processed)} "
+        f"(regions {len(regions)} x years {len(years)} = {expected_rows})"
+    )
+    return (
+        not mismatch_value and not mismatch_weight and len(processed) == expected_rows
+    )
 
 
 def check_trade_data() -> bool:
@@ -434,8 +502,9 @@ CHECKS = {
     "total_row": total_row,
     "share_stability": check_share_stability,
     "trade_data": check_trade_data,
-    "kita regional": check_kita_regional_summary,
-    "kita merged": check_kita_merged,
+    "kita_regional": check_kita_regional_2025,
+    "kita_merged": check_kita_merged,
+    "kita_balance": check_kita_balance,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)

@@ -20,7 +20,7 @@ from urllib.request import urlopen
 from pathlib import Path
 import pandas as pd
 
-from utils_validate_data import PROJECT_ROOT
+from core.utils_validate_data import PROJECT_ROOT
 
 BASEDIR = Path(".")
 SIDO_CODEBOOK = BASEDIR / "data/processed/codebook_관세청_시도코드_clean.csv"

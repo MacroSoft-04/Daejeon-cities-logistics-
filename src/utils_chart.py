@@ -9,7 +9,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 
-from utils_validate_data import PROJECT_ROOT
+from core.utils_validate_data import PROJECT_ROOT
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 

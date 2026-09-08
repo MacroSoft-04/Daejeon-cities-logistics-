@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from utils_chart import PALETTE, save, use_korean_font
-from utils_validate_data import PROJECT_ROOT
+from core.utils_validate_data import PROJECT_ROOT
 
 SRC = PROJECT_ROOT / "data/processed/kosis_estab_survey.csv"
 REGION = "대전"

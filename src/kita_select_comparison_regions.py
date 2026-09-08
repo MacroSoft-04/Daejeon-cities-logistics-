@@ -83,9 +83,9 @@ lookup(codebook, codebook_clean, df)
 df_merged = pd.merge(result, codebook_sido, on="시도명", how="outer")
 
 df_merged.to_csv(
-    data_dir / "comparison_regions.csv",
+    data_dir / "codebook_comparison_regions.csv",
     index=False,
     encoding="utf-8-sig",
 )
 print("\n<df_merged>\n", df_merged)
-print(f"Comparison regions saved to {data_dir / 'comparison_regions.csv'}")
+print(f"Comparison regions saved to {data_dir / 'codebook_comparison_regions.csv'}")

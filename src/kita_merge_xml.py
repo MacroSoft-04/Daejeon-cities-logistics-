@@ -1,10 +1,39 @@
-"""Combine per-region K-stat downloads into one long-format panel."""
+"""
+====================================================================
+* Author: Minseo Kim
+* Purpose:
+    - Clean and combine KITA regional monthly trade downloads into
+      standardized monthly and yearly panel datasets.
+    - Preserve the site's published yearly totals for validation and
+      derive comparable trade value, weight, balance, and unit-value metrics.
+* Input:
+    - data/raw/kita_monthly_<region>_<YYYYMMDD>.xls
+    - data/processed/kita_regional_2025.csv
+      (used as an external cross-check for 2025 regional export values)
+* Output:
+    - data/processed/kita_regional_monthly.csv
+    - data/processed/kita_regional_yearly.csv
+* Scope:
+    - All regional KITA monthly files matching kita_monthly_*.xls.
+    - Keeps both monthly observations and KITA's published annual aggregate rows.
+    - Partial latest-year monthly coverage is allowed; incomplete earlier years
+      are reported as warnings.
+* Notes:
+    - KITA monetary values are converted from thousand USD to million USD.
+    - Trade weights are converted from kg to thousand tons.
+    - Monetary trade balance is taken from KITA's published "수지" field.
+    - Weight balance and import/export weight ratio are derived because they
+      are not provided directly in the source.
+    - Published annual values are retained as an independent check rather than
+      reconstructed solely from monthly observations.
+====================================================================
+"""
 
 import re
 from pathlib import Path
 import pandas as pd
 
-RAW_DIR = Path("data/raw")
+RAW_DIR = Path("data/raw/kita")
 PROCESSED_DIR = Path("data/processed")
 MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly.csv"
 YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly.csv"
@@ -135,6 +164,8 @@ def split_panel(panel):
         frame["수입액_백만불"] = frame["수입_금액"] / 1_000
         frame["수출중량_천톤"] = frame["수출_중량"] / 1_000_000
         frame["수입중량_천톤"] = frame["수입_중량"] / 1_000_000
+        frame["수지_금액"] = frame["수지_금액"] / 1_000
+        frame["수지_중량"] = frame["수지_중량"] / 1_000_000
         frame["수출단가_USD_kg"] = frame["수출_금액"] * 1_000 / frame["수출_중량"]
         frame["수입단가_USD_kg"] = frame["수입_금액"] * 1_000 / frame["수입_중량"]
     return monthly, yearly

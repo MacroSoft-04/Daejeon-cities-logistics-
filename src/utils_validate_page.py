@@ -23,8 +23,9 @@ def validate_selectors(selectors):
         print(f"{name}: {is_visible}")
 
 
-def find_hoverable_element(selectors):
-    print(f"\n<find hoverable elemnt>")
+def find_hoverable_element(selectors, debug=False):
+    if debug:
+        print(f"\n<find hoverable elemnt>")
     for name, get_locator in selectors.items():
         locator = get_locator()
 
@@ -36,12 +37,13 @@ def find_hoverable_element(selectors):
 
             try:
                 element.hover(timeout=1000)
-
-                print(f"{name}: True")
+                if debug:
+                    print(f"{name}: True")
                 return element
 
             except Exception:
                 continue
-        print(f"{name}: False")
+        if debug:
+            print(f"{name}: False")
 
     raise RuntimeError("No visible and hoverable element was found.")
