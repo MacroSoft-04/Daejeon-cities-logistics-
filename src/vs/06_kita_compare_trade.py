@@ -3,12 +3,12 @@
 * Author: Minseo Kim
 * Purpose:      Compare Daejeon's trade trends with major benchmark regions.
 * Input:        data/processed/kita_regional_yearly.csv
-* Output:       output/05_Daejeon_trade_flow.jpg
+* Output:       output/06_Daejeon_trade_flow.jpg
 * Scope:        Uses complete annual data through the latest complete year;
 *               compares Daejeon with the top 3 regions by latest-year
 *               total trade value, plus the national total as reference.
-* Notes:        Trade value and weight are indexed to the first year = 100;
-*               balance metrics are kept in their original signed form.
+* Notes:        Export and import legs are indexed to the base year = 100;
+*               balance metrics are expressed as a share of total trade.
 ====================================================================
 """
 
@@ -38,16 +38,6 @@ y_min, y_max = daejeon["연도"].min(), daejeon["연도"].max()
 
 def add_total_trade_columns(df):
     df["총교역액_백만불"] = df["수출액_백만불"] + df["수입액_백만불"]
-    df["총교역중량_천톤"] = df["수출중량_천톤"] + df["수입중량_천톤"]
-    return df
-
-
-def add_balance_ratio_columns(df):
-    """Daejeon's balance is ~1/90 of the national one in absolute terms, so the
-    levels flatten it against the reference lines. Scaling by total trade keeps
-    the surplus/deficit sign while making regions comparable."""
-    df["수지율_금액"] = df["수지_금액"] / df["총교역액_백만불"] * 100
-    df["수지율_중량"] = df["수지_중량"] / df["총교역중량_천톤"] * 100
     return df
 
 
@@ -60,13 +50,14 @@ def index_to_base(df, cols, base_year):
     return df
 
 
-INDEX_COLS = ["총교역액_백만불", "총교역중량_천톤"]
+INDEX_COLS = [
+    "수출액_백만불",
+    "수입액_백만불",
+    "수출중량_천톤",
+    "수입중량_천톤",
+]
 
-base = (
-    YEARLY[YEARLY["연도"] <= latest_year]
-    .pipe(add_total_trade_columns)
-    .pipe(add_balance_ratio_columns)
-)
+base = YEARLY[YEARLY["연도"] <= latest_year].pipe(add_total_trade_columns)
 
 benchmark_regions = (
     base[
@@ -94,10 +85,12 @@ series = {
 }
 
 PANELS = [
-    ("총교역액_백만불_지수", "총교역액", f"지수 ({y_min}년=100)"),
-    ("총교역중량_천톤_지수", "총교역중량", f"지수 ({y_min}년=100)"),
-    ("수지율_금액", "교역금액 수지율", "수지 / 총교역액 (%)"),
-    ("수지율_중량", "교역중량 수지율", "수지 / 총교역중량 (%)"),
+    ("수출액_백만불_지수", "수출액", f"지수 ({y_min}년=100)"),
+    ("수입액_백만불_지수", "수입액", f"지수 ({y_min}년=100)"),
+    ("수출중량_천톤_지수", "수출중량", f"지수 ({y_min}년=100)"),
+    ("수입중량_천톤_지수", "수입중량", f"지수 ({y_min}년=100)"),
+    ("수출단가_USD_kg", "수출단가", "단가 (USD/kg)"),
+    ("수입단가_USD_kg", "수입단가", "단가 (USD/kg)"),
 ]
 
 STYLES = {
@@ -111,6 +104,18 @@ TOP3_COLORS = {
 }
 
 
+def stack_label_positions(values, y_span):
+    """Endpoints of the benchmark lines often land within a few points of each
+    other, so the raw values would overprint. Push them apart just enough."""
+    min_gap = y_span * 0.05
+    placed = {}
+    for region, value in sorted(values.items(), key=lambda item: item[1]):
+        if placed:
+            value = max(value, max(placed.values()) + min_gap)
+        placed[region] = value
+    return placed
+
+
 def get_style(region):
     if region in STYLES:
         return STYLES[region]
@@ -122,7 +127,7 @@ def get_style(region):
     )
 
 
-fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex=True)
+fig, axes = plt.subplots(3, 2, figsize=(14, 15), sharex=True)
 
 for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
     for region, df in series.items():
@@ -134,33 +139,37 @@ for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
             **get_style(region),
         )
 
-        if region in benchmark_regions:
-            last = df.iloc[-1]
+    endpoints = {region: series[region][col].iloc[-1] for region in benchmark_regions}
+    y_lo, y_hi = ax.get_ylim()
+    for region, y in stack_label_positions(endpoints, y_hi - y_lo).items():
+        ax.text(y_max + 0.3, y, region, fontsize=9, color="gray", va="center")
 
-            ax.text(
-                last["연도"] + 0.2,
-                last[col],
-                region,
-                fontsize=9,
-                color="gray",
-                va="center",
-            )
-        if "수지" in col:
-            ax.axhline(0, color="black", linewidth=0.8, alpha=0.6)
+    ax.set_title(metric, fontsize=13, fontweight="bold")
+    ax.set_ylabel(ylabel)
+    ax.grid(True, linestyle="--", alpha=0.6)
 
-        ax.legend(loc="upper left", fontsize=10, frameon=False)
-        ax.set_title(
-            f"대전·주요 지역 {metric} 추이 ({y_min}~{y_max})",
-            fontsize=14,
-            fontweight="bold",
-        )
-        ax.set_ylabel(ylabel)
-        ax.grid(True, linestyle="--", alpha=0.6)
 
 # Leave room on the right for the inline region labels.
 axes.flat[0].set_xlim(y_min - 0.5, y_max + 2.5)
 
-fig.tight_layout()
-SAVE_PATH = SAVE_DIR / "05_Daejeon_trade_flow.jpg"
+fig.suptitle(
+    f"대전·주요 지역 수출입 규모 및 단가 추이 ({y_min}~{y_max})",
+    fontsize=16,
+    fontweight="bold",
+)
+# One shared legend: every panel draws the same two labelled lines.
+handles, labels = axes.flat[0].get_legend_handles_labels()
+fig.legend(
+    handles,
+    labels,
+    loc="upper center",
+    bbox_to_anchor=(0.5, 0.962),
+    ncol=2,
+    fontsize=11,
+    frameon=False,
+)
+fig.tight_layout(rect=(0, 0, 1, 0.955))
+
+SAVE_PATH = SAVE_DIR / "06_Daejeon_target_region_trade_flow_volume_weight_unit.jpg"
 fig.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
 plt.close(fig)

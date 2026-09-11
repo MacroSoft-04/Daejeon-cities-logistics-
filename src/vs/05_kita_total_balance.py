@@ -42,15 +42,6 @@ def add_total_trade_columns(df):
     return df
 
 
-def add_balance_ratio_columns(df):
-    """Daejeon's balance is ~1/90 of the national one in absolute terms, so the
-    levels flatten it against the reference lines. Scaling by total trade keeps
-    the surplus/deficit sign while making regions comparable."""
-    df["수지율_금액"] = df["수지_금액"] / df["총교역액_백만불"] * 100
-    df["수지율_중량"] = df["수지_중량"] / df["총교역중량_천톤"] * 100
-    return df
-
-
 def index_to_base(df, cols, base_year):
     """Daejeon is ~1/146 of the national total, so levels can't share an axis."""
     df = df.sort_values("연도")
@@ -62,11 +53,7 @@ def index_to_base(df, cols, base_year):
 
 INDEX_COLS = ["총교역액_백만불", "총교역중량_천톤"]
 
-base = (
-    YEARLY[YEARLY["연도"] <= latest_year]
-    .pipe(add_total_trade_columns)
-    .pipe(add_balance_ratio_columns)
-)
+base = YEARLY[YEARLY["연도"] <= latest_year].pipe(add_total_trade_columns)
 
 benchmark_regions = (
     base[
@@ -96,8 +83,6 @@ series = {
 PANELS = [
     ("총교역액_백만불_지수", "총교역액", f"지수 ({y_min}년=100)"),
     ("총교역중량_천톤_지수", "총교역중량", f"지수 ({y_min}년=100)"),
-    ("수지율_금액", "교역금액 수지율", "수지 / 총교역액 (%)"),
-    ("수지율_중량", "교역중량 수지율", "수지 / 총교역중량 (%)"),
 ]
 
 STYLES = {
@@ -122,7 +107,7 @@ def get_style(region):
     )
 
 
-fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex=True)
+fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
 for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
     for region, df in series.items():
@@ -145,8 +130,6 @@ for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
                 color="gray",
                 va="center",
             )
-        if "수지" in col:
-            ax.axhline(0, color="black", linewidth=0.8, alpha=0.6)
 
         ax.legend(loc="upper left", fontsize=10, frameon=False)
         ax.set_title(

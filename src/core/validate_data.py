@@ -27,7 +27,7 @@ from utils_validate_data import (
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita_balance"]
+TARGETS = ["trade_data"]
 print("PROJECT_ROOT:", PROJECT_ROOT)
 print("RAW:", RAW)
 
@@ -37,7 +37,7 @@ REGION = "대전"
 NATIONAL = "전국"
 TOTAL_ROW = "전체 산업"
 MIN_GAP = 1.0
-TOTAL_TOLERANCE = 0.01  # percent
+TOLERANCE = 0.01  # percent
 KITA_HEADER_ROWS = (2, 3)
 
 DATASETS = {
@@ -57,9 +57,10 @@ DATASETS = {
         "sample_year": 2021,
     },
     "trade_data": {
-        "raw": RAW / "tradedata_dj_2020_2025_raw.csv",
-        "processed": PROCESSED / "tradedata_dj_2020_2025.csv",
-        "sample_year": 2020,
+        "processed": PROCESSED / "tradedata_2000_2025_raw.csv",
+        "target_data": PROCESSED / "codebook_comparison_regions.csv",
+        "sample_sido": "대전광역시",
+        "sample_year": 2000,
     },
     "kita": {
         "raw_1": RAW
@@ -82,7 +83,7 @@ def check_kita_balance() -> bool:
     value_balance_ok = np.allclose(
         df["수지_금액"],
         calculated_balance,
-        atol=TOTAL_TOLERANCE,
+        atol=TOLERANCE,
         equal_nan=True,
     )
 
@@ -204,56 +205,196 @@ def check_trade_data() -> bool:
     The section mapping is a hand-written CASE block, so one shifted boundary
     would silently move a whole commodity group into the wrong bucket.
     """
-    RATIO_TOLERANCE = 0.1
     print(f"\n{'=' * 60}\ntrade_data\n{'=' * 60}")
 
     processed = pd.read_csv(DATASETS["trade_data"]["processed"])
-    print("1) 자동 추론 dtype:")
+    target = pd.read_csv(DATASETS["trade_data"]["target_data"])
+
+    print("<dtype & nulls>")
+    print("\n1) dtypes:")
     print(processed.dtypes)
 
-    # hs_section/hs_chapter are zero-padded codes. If pandas inferred them as
-    # integers the leading zero is already gone, so the padding has to be
-    # restored before any string comparison.
-    code_cols = ["hs_section", "hs_chapter"]
-    inferred_as_number = [
-        c for c in code_cols if pd.api.types.is_numeric_dtype(processed[c])
-    ]
-    if inferred_as_number:
-        print(
-            f"\n2) code columns read as numeric (leading zero lost): {inferred_as_number}"
-        )
-        print(f"   -> re-reading with dtype=str for {code_cols}")
+    print("\n2) nulls:")
+    has_nulls = processed.isna().values.any()
+    if has_nulls:
+        print(f"\tnulls: {has_nulls}")
+    else:
+        print("\tno nulls")
 
-    df = pd.read_csv(
-        DATASETS["trade_data"]["processed"], dtype={c: str for c in code_cols}
+    print("\n3) rows:")
+    all_regions = processed["지역"].unique()
+    all_years = processed["기간"].unique()
+    all_codes = processed["HS코드"].unique()
+
+    num_regions = len(all_regions)
+    num_years = len(all_years)
+    num_codes = len(all_codes)
+    expected_rows = num_regions * num_years * num_codes
+    actual_rows = len(processed)
+
+    full_index = pd.MultiIndex.from_product(
+        [all_regions, all_years, all_codes], names=["지역", "기간", "HS코드"]
     )
 
-    # One row per section shows the chapter range each mapping produced.
-    print("\n3) chapter ranges:")
-    ranges = df.groupby(["hs_section", "section_name"]).agg(
-        chapter_min=("hs_chapter", "min"),
-        chapter_max=("hs_chapter", "max"),
-        chapter_cnt=("hs_chapter", "nunique"),
+    actual_indexed = processed.set_index(["지역", "기간", "HS코드"])
+    missing_combos = full_index.difference(actual_indexed.index)
+    missing_df = missing_combos.to_frame().reset_index(drop=True)
+
+    missing_summary = (
+        missing_df.groupby(["지역", "기간"])["HS코드"]
+        .apply(list)
+        .reset_index(name="missing_hs_codes")
     )
-    print(ranges.reset_index().to_string(index=False))
 
-    ratio_sums = df.groupby("year")["export_ratio"].sum().round(2)
-    print(f"\n4-1) 연도별 수출 비중 합계: {ratio_sums.to_dict()}")
-
-    recomputed = df.groupby("year")["export_usd"].transform(lambda s: s / s.sum() * 100)
+    print(f"Actual rows: {actual_rows:,}")
     print(
-        f"\n4-2) 연도별 수출 비중 재계산: {(recomputed.groupby(df["year"]).sum() - 100).abs().max()}"
+        f"Expected grid size ({num_regions} x {num_years} x {num_codes}): {expected_rows:,}"
     )
 
-    # Chapters must not straddle two sections; that would mean the CASE
-    # boundaries overlap.
-    straddling = df.groupby("hs_chapter")["hs_section"].nunique().gt(1).sum()
-    print(f"\n5) 두 부에 걸친 류: {straddling}")
+    # check missing values
+    if actual_rows == expected_rows:
+        print(
+            "✓ Dataset forms a complete Cartesian product with no missing combinations."
+        )
+    else:
+        print(
+            f"⚠️ Missing or duplicate combinations detected! Difference: {expected_rows - actual_rows:,} rows."
+        )
+        print(f"Total missing combinations: {len(missing_df)}")
+        print("\nBreakdown of missing data by region and year:")
+        print(missing_summary.to_string())
 
-    sums = df.groupby("year")["export_usd"].sum()
-    print(f"\n6) 연도별 수출 합계: {sums.to_dict()}")
+    zero_rows = processed[
+        (processed["지역"] == "광주광역시")
+        & (processed["기간"] == 2000)
+        & (processed["수출금액"] == 0)
+        & (processed["수입금액"] == 0)
+    ]
 
-    return straddling == 0 and (ratio_sums - 100).abs().max() < RATIO_TOLERANCE
+    print("\n--- Injected Zero-Value Rows (광주광역시, 2000) ---")
+    print(zero_rows.to_string())
+
+    # check duplicate values
+    duplicates = processed[
+        processed.duplicated(subset=["기간", "지역", "HS코드"], keep=False)
+    ]
+
+    if not duplicates.empty:
+        print(
+            f"⚠️ Warning: Found {len(duplicates)} duplicate key entries after merging!"
+        )
+    else:
+        print("✓ No duplicate key entries found.")
+
+    print("Total Export Sum:", processed["수출금액"].sum())
+    print("Total Import Sum:", processed["수입금액"].sum())
+
+    print("\n", "=" * 60)
+    print("<regions>")
+    processed_regions = pd.Series(list(processed["지역"].unique()), name="processed")
+    target_regions = pd.Series(list(target["시도명"].unique()), name="target")
+    comparison = pd.concat([processed_regions, target_regions], axis=1)
+    print(comparison)
+
+    print("\n", "=" * 60)
+    print("<year>")
+
+    def analyze_year_gaps(df):
+        results = []
+        for region, group in df.groupby("지역"):
+            unique_years = set(group["기간"].dropna().unique())
+            if not unique_years:
+                continue
+
+            min_year, max_year = min(unique_years), max(unique_years)
+            expected_range = set(range(int(min_year), int(max_year) + 1))
+            missing = sorted(expected_range - unique_years)
+
+            results.append(
+                {
+                    "지역": region,
+                    "min_year": min_year,
+                    "max_year": max_year,
+                    "total_years": len(unique_years),
+                    "missing_years": missing if missing else "None",
+                }
+            )
+        return pd.DataFrame(results)
+
+    print(analyze_year_gaps(processed))
+
+    print("\n", "=" * 60)
+    print("<HS code>")
+
+    def analyze_year_gaps(df):
+        results = []
+        for region, group in df.groupby("지역"):
+            unique_code = set(group["HS코드"].dropna().unique())
+            if not unique_code:
+                continue
+
+            min_code, max_code = min(unique_code), max(unique_code)
+            expected_range = set(range(int(min_code), int(max_code) + 1))
+            missing = sorted(expected_range - unique_code)
+
+            results.append(
+                {
+                    "지역": region,
+                    "min_code": min_code,
+                    "max_code": max_code,
+                    "total_code": len(unique_code),
+                    "missing_code": missing if missing else "None",
+                }
+            )
+        return pd.DataFrame(results)
+
+    print(analyze_year_gaps(processed))
+
+    print("\n", "=" * 60)
+    print("<check if HS code matches product name>")
+
+    hs_mapping_check = (
+        processed.groupby("HS코드")["품목명"]
+        .nunique()
+        .reset_index(name="unique_name_count")
+    )
+    mismatches = hs_mapping_check[hs_mapping_check["unique_name_count"] > 1]
+
+    if mismatches.empty:
+        print("✓ All HS codes map consistently to exactly one product name.")
+    else:
+        print(f"⚠️ Found {len(mismatches)} HS codes with conflicting product names:")
+        print(
+            processed[processed["HS코드"].isin(mismatches["HS코드"])][
+                ["HS코드", "품목명"]
+            ].drop_duplicates()
+        )
+
+    baseline = (
+        processed[
+            (processed["지역"] == "sample_region")
+            & (processed["기간"] == "sameple_year")
+        ][["HS코드", "품목명"]]
+        .drop_duplicates()
+        .set_index("HS코드")["품목명"]
+    )
+
+    processed["expected_품목명"] = processed["HS코드"].map(baseline)
+
+    mismatches = processed[
+        processed["expected_품목명"].notna()
+        & (processed["품목명"] != processed["expected_품목명"])
+    ]
+
+    if mismatches.empty:
+        print("✓ All HS codes match their product name.")
+    else:
+        print(f"⚠️ Found {len(mismatches)} HS codes with mismatched product names:")
+        print(
+            mismatches[
+                ["기간", "지역", "HS코드", "품목명", "expected_품목명"]
+            ].drop_duplicates()
+        )
 
 
 def check_share_stability() -> bool:
@@ -315,7 +456,7 @@ def total_row() -> bool:
     worst = compared["오차율"].abs().max()
     print(compared.loc[compared["오차율"].abs().nlargest(5).index].to_string())
     print(f"\nmax error: {worst:.4f}%")
-    return worst < TOTAL_TOLERANCE
+    return worst < TOLERANCE
 
 
 def check_gap_stability() -> bool:

@@ -48,7 +48,7 @@ url = "https://tradedata.go.kr/cts/index.do#"
 regions = pd.read_csv(INPUT_DIR / "codebook_comparison_regions.csv")
 
 TARGET = regions["시도코드"].tolist()
-DEBUG = False
+DEBUG = True
 
 
 def get_selectors(page):
