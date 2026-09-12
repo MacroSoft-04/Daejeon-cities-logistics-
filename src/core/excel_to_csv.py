@@ -5,7 +5,7 @@ import pandas as pd
 RAW_DIR = Path("./data/raw")
 OUT_DIR = Path("./data/processed")
 TARGETS = {
-    "관세청조회코드_v1.3_clean.xlsx": "codebook_관세청",
+    "관세청_HS부호_20260101.xlsx": "codebook_관세청_HS부호_20260101",
 }
 
 CUSTOM_PROPS = "docProps/custom.xml"
@@ -39,7 +39,15 @@ def convert(path, out_dir, prefix):
     zeros survive."""
     sheets = read_sheets(path)
     for name, df in sheets.items():
-        out = out_dir / f"{prefix}_{name}.csv"
+        if len(sheets) == 1:
+            out = out_dir / f"{prefix}.csv"
+        else:
+            out = out_dir / f"{prefix}_{name}.csv"
+
+        if out.exists():
+            print(f"  SKIP {name}: {df.shape} -> {out.name}")
+            continue
+
         df.to_csv(out, index=False, encoding="utf-8-sig")
         print(f"  {name}: {df.shape} -> {out.name}")
 

@@ -27,7 +27,7 @@ base_dir = Path(".")
 origin_dir = base_dir / "data/raw/trade_data"
 data_dir = base_dir / "data/processed"
 origin_dir.mkdir(parents=True, exist_ok=True)
-
+hs_cat = pd.read_csv(data_dir / "codebook_hs_categories.csv", dtype={"HS코드": str})
 
 DEBUG = False
 
@@ -108,6 +108,12 @@ if dfs:
 
     save_path = data_dir / "tradedata_2000_2025_raw.csv"
     final_df = final_df.sort_values(by=["지역", "기간"], ignore_index=True)
+
+    print(final_df["HS코드"].dtype, hs_cat["HS코드"].dtype)
+    print(final_df["HS코드"].head().tolist(), hs_cat["HS코드"].head().tolist())
+    df_merged = pd.merge(final_df, hs_cat, on="HS코드", how="outer")
+    print(df_merged[["HS코드", "품목명"]].head())
+
     final_df.to_csv(save_path, index=False, encoding="utf-8-sig")
     print(f"Successfully processed {len(dfs)} files. Saved to: {save_path.resolve()}")
 else:
