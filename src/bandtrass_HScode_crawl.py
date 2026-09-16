@@ -35,6 +35,12 @@ SAVE_DIR.mkdir(parents=True, exist_ok=True)
 URL = "https://www.bandtrass.or.kr/hsnavi.do"
 
 DEBUG = True
+WORD_BREAK_CODES = {"19", "97"}
+
+
+def join_cell_lines(code: str, text: str) -> str:
+    separator = "" if code in WORD_BREAK_CODES else " "
+    return separator.join(line.strip() for line in text.splitlines() if line.strip())
 
 
 def extract_hs_codes(page):
@@ -46,12 +52,15 @@ def extract_hs_codes(page):
     cells = page.locator("table#sok td.title").all()
 
     for cell in cells:
-        text = cell.inner_text().strip()
         cell_id = cell.get_attribute("id")
+        if not cell_id:
+            continue
 
-        if cell_id and text:
-            code_number = cell_id.replace("code", "")
-            hs_data.append({"HS코드": code_number, "품목약칭_TRASS": text})
+        code = cell_id.replace("code", "").zfill(2)
+        text = join_cell_lines(code, cell.text_content())
+        if not text:
+            continue
+        hs_data.append({"HS코드": code, "품목약칭_TRASS": text})
     return pd.DataFrame(hs_data)
 
 

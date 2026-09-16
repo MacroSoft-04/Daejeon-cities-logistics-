@@ -57,9 +57,9 @@ DATASETS = {
         "sample_year": 2021,
     },
     "trade_data": {
-        "processed": PROCESSED / "tradedata_2000_2025_raw.csv",
+        "processed": PROCESSED / "tradedata_2000_2025_cleaned.csv",
         "target_data": PROCESSED / "codebook_comparison_regions.csv",
-        "sample_sido": "대전광역시",
+        "sample_sido": "광주광역시",
         "sample_year": 2000,
     },
     "kita": {
@@ -207,8 +207,16 @@ def check_trade_data() -> bool:
     """
     print(f"\n{'=' * 60}\ntrade_data\n{'=' * 60}")
 
-    processed = pd.read_csv(DATASETS["trade_data"]["processed"])
+    processed = pd.read_csv(DATASETS["trade_data"]["processed"], dtype={"HS코드": str})
     target = pd.read_csv(DATASETS["trade_data"]["target_data"])
+    processed = processed.rename(
+        columns={
+            "수출건수(건)": "수출건수",
+            "수출금액(천달러)": "수출금액",
+            "수입건수(건)": "수입건수",
+            "수입금액(천달러)": "수입금액",
+        }
+    )
 
     print("<dtype & nulls>")
     print("\n1) dtypes:")
@@ -216,8 +224,24 @@ def check_trade_data() -> bool:
 
     print("\n2) nulls:")
     has_nulls = processed.isna().values.any()
+
     if has_nulls:
-        print(f"\tnulls: {has_nulls}")
+        print(f"nulls: {has_nulls}")
+        null_rows = processed[processed.isna().any(axis=1)]
+        null_counts = processed.isna().sum()
+
+        print(f"\n{len(null_rows)} rows affected, by region:")
+        print(null_rows.groupby("지역").size().to_string())
+
+        print("\nTop region-years:")
+        print(
+            null_rows.groupby(["지역", "기간"])
+            .size()
+            .sort_values(ascending=False)
+            .head(5)
+            .to_string()
+        )
+        print(f"⚠️ Nulls by column:\n{null_counts[null_counts > 0].to_string()}")
     else:
         print("\tno nulls")
 
@@ -240,12 +264,6 @@ def check_trade_data() -> bool:
     missing_combos = full_index.difference(actual_indexed.index)
     missing_df = missing_combos.to_frame().reset_index(drop=True)
 
-    missing_summary = (
-        missing_df.groupby(["지역", "기간"])["HS코드"]
-        .apply(list)
-        .reset_index(name="missing_hs_codes")
-    )
-
     print(f"Actual rows: {actual_rows:,}")
     print(
         f"Expected grid size ({num_regions} x {num_years} x {num_codes}): {expected_rows:,}"
@@ -262,7 +280,6 @@ def check_trade_data() -> bool:
         )
         print(f"Total missing combinations: {len(missing_df)}")
         print("\nBreakdown of missing data by region and year:")
-        print(missing_summary.to_string())
 
     zero_rows = processed[
         (processed["지역"] == "광주광역시")
@@ -322,79 +339,6 @@ def check_trade_data() -> bool:
         return pd.DataFrame(results)
 
     print(analyze_year_gaps(processed))
-
-    print("\n", "=" * 60)
-    print("<HS code>")
-
-    def analyze_year_gaps(df):
-        results = []
-        for region, group in df.groupby("지역"):
-            unique_code = set(group["HS코드"].dropna().unique())
-            if not unique_code:
-                continue
-
-            min_code, max_code = min(unique_code), max(unique_code)
-            expected_range = set(range(int(min_code), int(max_code) + 1))
-            missing = sorted(expected_range - unique_code)
-
-            results.append(
-                {
-                    "지역": region,
-                    "min_code": min_code,
-                    "max_code": max_code,
-                    "total_code": len(unique_code),
-                    "missing_code": missing if missing else "None",
-                }
-            )
-        return pd.DataFrame(results)
-
-    print(analyze_year_gaps(processed))
-
-    print("\n", "=" * 60)
-    print("<check if HS code matches product name>")
-
-    hs_mapping_check = (
-        processed.groupby("HS코드")["품목명"]
-        .nunique()
-        .reset_index(name="unique_name_count")
-    )
-    mismatches = hs_mapping_check[hs_mapping_check["unique_name_count"] > 1]
-
-    if mismatches.empty:
-        print("✓ All HS codes map consistently to exactly one product name.")
-    else:
-        print(f"⚠️ Found {len(mismatches)} HS codes with conflicting product names:")
-        print(
-            processed[processed["HS코드"].isin(mismatches["HS코드"])][
-                ["HS코드", "품목명"]
-            ].drop_duplicates()
-        )
-
-    baseline = (
-        processed[
-            (processed["지역"] == "sample_region")
-            & (processed["기간"] == "sameple_year")
-        ][["HS코드", "품목명"]]
-        .drop_duplicates()
-        .set_index("HS코드")["품목명"]
-    )
-
-    processed["expected_품목명"] = processed["HS코드"].map(baseline)
-
-    mismatches = processed[
-        processed["expected_품목명"].notna()
-        & (processed["품목명"] != processed["expected_품목명"])
-    ]
-
-    if mismatches.empty:
-        print("✓ All HS codes match their product name.")
-    else:
-        print(f"⚠️ Found {len(mismatches)} HS codes with mismatched product names:")
-        print(
-            mismatches[
-                ["기간", "지역", "HS코드", "품목명", "expected_품목명"]
-            ].drop_duplicates()
-        )
 
 
 def check_share_stability() -> bool:
