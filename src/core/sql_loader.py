@@ -8,20 +8,17 @@ from sqlalchemy import create_engine
 
 
 def upload_csv_to_db(file_name: str, table_name: str = None):
-    """
-    CSV 파일을 읽어 MySQL DB 테이블로 일괄 적재하는 유틸리티 함수
-    """
     load_dotenv()
     db_password = os.getenv("DB_PASSWORD")
 
     if not db_password:
-        raise ValueError(".env 파일에서 DB_PASSWORD를 찾을 수 없습니다.")
+        raise ValueError("fail to load DB_PASSWORD from .env file")
 
     base_dir = Path(".")
     csv_path = base_dir / "data/processed" / file_name
 
     if not csv_path.exists():
-        print(f"❌ 에러: {csv_path} 파일이 존재하지 않습니다.")
+        print(f"❌ file not found: {csv_path}")
         return
 
     if not table_name:
@@ -43,4 +40,4 @@ if __name__ == "__main__":
         upload_csv_to_db(target_file)
     else:
         # if no argument is given, upload based on the file name
-        upload_csv_to_db("tradedata_dj_2020_2025.csv")
+        upload_csv_to_db("tradedata_2000_2025_cleaned.csv")

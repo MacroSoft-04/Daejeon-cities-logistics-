@@ -22,11 +22,17 @@
     - 원자료없음: True where no row existed in the source and the grid
       supplied zeros. Reported zeros are False.
 
+* Columns renamed:
+    - HS코드 -> 류코드: the column holds 2-digit 류 codes only, never
+      4/6/10-digit codes. The merged file keeps the 원자료 name.
+
 * Notes:
     - HS코드 is a zero-padded string; read it back with
       dtype={"HS코드": str} or "01" becomes the integer 1.
     - Chapter 99 is dropped here, so this file does not reconcile with
       published 관세청 totals. Use the merged file for that.
+    - 류코드 is a zero-padded string; read it back with
+      dtype={"류코드": str} or "01" becomes the integer 1.
 ====================================================================
 """
 
@@ -41,7 +47,10 @@ CLEANED_PATH = data_dir / "tradedata_2000_2025_cleaned.csv"
 
 UNCLASSIFIED = "99"
 
-GRID_KEYS = ["지역", "기간", "HS코드"]
+SOURCE_CODE_COL = "HS코드"
+CODE_COL = "류코드"
+GRID_KEYS = ["지역", "기간", CODE_COL]
+
 VALUE_COLS = ["수출건수", "수출금액", "수입건수", "수입금액", "무역수지"]
 LABEL_COLS = ["품목명", "품목약칭_TRASS"]
 
@@ -55,7 +64,7 @@ def report_unclassified(df: pd.DataFrame) -> None:
     rather than taken on trust.
     """
     print(f"\n--- HS chapter {UNCLASSIFIED}: unclassified goods ---")
-    chapter = df[df["HS코드"] == UNCLASSIFIED]
+    chapter = df[df[CODE_COL] == UNCLASSIFIED]
     if chapter.empty:
         print(f"No rows found for chapter {UNCLASSIFIED}")
         return
@@ -123,12 +132,12 @@ def backfill_labels(grid: pd.DataFrame, name_col: str) -> pd.DataFrame:
         return grid
 
     by_code = (
-        grid[["HS코드", name_col]]
+        grid[[CODE_COL, name_col]]
         .dropna()
-        .drop_duplicates("HS코드")
-        .set_index("HS코드")[name_col]
+        .drop_duplicates(CODE_COL)
+        .set_index(CODE_COL)[name_col]
     )
-    grid[name_col] = grid[name_col].fillna(grid["HS코드"].map(by_code))
+    grid[name_col] = grid[name_col].fillna(grid[CODE_COL].map(by_code))
     return grid
 
 
@@ -151,7 +160,7 @@ def check_totals_preserved(merged: pd.DataFrame, grid: pd.DataFrame, tol=1e-6) -
 
 
 def check_labels_match_source(
-    merged: pd.DataFrame, grid: pd.DataFrame, label_cols, code_col: str = "HS코드"
+    merged: pd.DataFrame, grid: pd.DataFrame, label_cols, code_col: str = CODE_COL
 ) -> None:
     """Every chapter must carry the same label before and after backfilling.
 
@@ -183,7 +192,7 @@ def check_labels_match_source(
         print(f"{col}: {len(result)} chapters match the source")
 
 
-def check_labels_consistent(df, label_cols, code_col: str = "HS코드", label="") -> None:
+def check_labels_consistent(df, label_cols, code_col: str = CODE_COL, label="") -> None:
     """Each chapter must carry exactly one value in every label column."""
     counts = df.groupby(code_col)[label_cols].nunique()
     inconsistent = counts[(counts > 1).any(axis=1)]
@@ -195,7 +204,7 @@ def check_labels_consistent(df, label_cols, code_col: str = "HS코드", label=""
 
 
 def report_missing_labels(
-    df: pd.DataFrame, label_cols, code_col: str = "HS코드"
+    df: pd.DataFrame, label_cols, code_col: str = CODE_COL
 ) -> None:
     """Report which chapters lack each label, not just how many rows are null."""
     print("\n--- Labels ---")
@@ -225,13 +234,13 @@ def move_after(df: pd.DataFrame, col: str, after: str) -> pd.DataFrame:
 
 def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
     """The CSV carries no dtypes, so verify what a reader actually gets."""
-    reloaded = pd.read_csv(path, encoding="utf-8-sig", dtype={"HS코드": str})
+    reloaded = pd.read_csv(path, encoding="utf-8-sig", dtype={CODE_COL: str})
 
     if len(reloaded) != len(expected):
         raise AssertionError(
             f"Reloaded {len(reloaded):,} rows, wrote {len(expected):,}"
         )
-    if (bad := reloaded.loc[reloaded["HS코드"].str.len() != 2, "HS코드"].unique()).size:
+    if (bad := reloaded.loc[reloaded[CODE_COL].str.len() != 2, CODE_COL].unique()).size:
         raise AssertionError(f"HS codes lost their padding: {bad.tolist()}")
     if (nulls := reloaded.isna().sum()).any():
         raise AssertionError(f"Nulls after reload:\n{nulls[nulls > 0]}")
@@ -252,18 +261,19 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
 
 def run(df: pd.DataFrame) -> pd.DataFrame:
     report_unclassified(df)
-    cleaned = df[df["HS코드"] != UNCLASSIFIED].copy()
+    cleaned = df[df[CODE_COL] != UNCLASSIFIED].copy()
     print(f"\nDropped {len(df) - len(cleaned)} rows for chapter {UNCLASSIFIED}")
     print(
-        f"Chapters covered: {cleaned['HS코드'].nunique()} of {df['HS코드'].nunique()}"
+        f"Chapters covered: {cleaned[CODE_COL].nunique()} of {df[CODE_COL].nunique()}"
     )
-    describe_chapters(cleaned["HS코드"])
+    describe_chapters(cleaned[CODE_COL])
 
     grid = complete_grid(cleaned)
     print(f"Grid completion added {len(grid) - len(cleaned)} rows")
 
     for col_name in LABEL_COLS:
         grid = backfill_labels(grid, col_name)
+
     check_totals_preserved(cleaned, grid)
 
     report_missing_labels(grid, LABEL_COLS)
@@ -293,5 +303,5 @@ def run(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    df = pd.read_csv(MERGED_PATH, dtype={"HS코드": str}, encoding="utf-8-sig")
-    run(df)
+    df = pd.read_csv(MERGED_PATH, dtype={SOURCE_CODE_COL: str}, encoding="utf-8-sig")
+    run(df.rename(columns={SOURCE_CODE_COL: CODE_COL}))

@@ -77,7 +77,7 @@ def run():
         print(df_hs.head())
 
         df_hs.to_csv(
-            SAVE_DIR / "codebook_hs_categories_raw.csv",
+            SAVE_DIR / "codebook_hs_chapter_raw.csv",
             index=False,
             encoding="utf-8-sig",
         )

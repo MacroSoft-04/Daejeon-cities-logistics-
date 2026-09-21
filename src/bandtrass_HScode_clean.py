@@ -25,8 +25,8 @@ RAW_DIR = BASE_DIR / "data/raw"
 PROCESSED_DIR = BASE_DIR / "data/processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-input_path = RAW_DIR / "codebook_hs_categories_raw.csv"
-output_path = PROCESSED_DIR / "codebook_hs_categories.csv"
+input_path = RAW_DIR / "codebook_hs_chapter_raw.csv"
+output_path = PROCESSED_DIR / "codebook_hs_chapter.csv"
 
 CATEGORY_SEPARATORS = re.compile(r"[\sㆍ·_]+")
 

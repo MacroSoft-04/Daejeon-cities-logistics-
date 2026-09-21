@@ -1,14 +1,13 @@
 """
 ====================================================================
 * Author: Minseo Kim
-* Purpose:      Compare Daejeon's trade trends with major benchmark regions.
+* Purpose:      Compare Daejeon's trade trends with every other region.
 * Input:        data/processed/kita_regional_yearly.csv
 * Output:       output/05_Daejeon_trade_flow.jpg
 * Scope:        Uses complete annual data through the latest complete year;
-*               compares Daejeon with the top 3 regions by latest-year
-*               total trade value, plus the national total as reference.
-* Notes:        Trade value and weight are indexed to the first year = 100;
-*               balance metrics are kept in their original signed form.
+*               plots all regions that cover the full period, with Daejeon
+*               highlighted and the national total as reference.
+* Notes:        Trade value and weight are indexed to the first shared year = 100.
 ====================================================================
 """
 
@@ -30,10 +29,9 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 YEARLY_PATH = DATA_DIR / "kita_regional_yearly.csv"
 YEARLY = pd.read_csv(YEARLY_PATH)
 
-latest_year = YEARLY["연도"].max() - 1
-daejeon = YEARLY[(YEARLY["지역명"] == "대전") & (YEARLY["연도"] <= latest_year)].copy()
-national = YEARLY[(YEARLY["지역명"] == "전국") & (YEARLY["연도"] <= latest_year)].copy()
-y_min, y_max = daejeon["연도"].min(), daejeon["연도"].max()
+HIGHLIGHT = "대전"
+REFERENCE = "전국"
+INDEX_COLS = ["총교역액_백만불", "총교역중량_천톤"]
 
 
 def add_total_trade_columns(df):
@@ -51,34 +49,40 @@ def index_to_base(df, cols, base_year):
     return df
 
 
-INDEX_COLS = ["총교역액_백만불", "총교역중량_천톤"]
+def spread_labels(values, min_gap):
+    """End-of-line labels collide once every region is drawn, so nudge them apart
+    in ascending order and keep the original vertical ranking."""
+    adjusted = {}
+    previous = None
+    for region, y in sorted(values.items(), key=lambda item: item[1]):
+        if previous is not None and y - previous < min_gap:
+            y = previous + min_gap
+        adjusted[region] = y
+        previous = y
+    return adjusted
 
+
+# The most recent year in the file is still accumulating, so it is not comparable.
+latest_year = YEARLY["연도"].max() - 1
 base = YEARLY[YEARLY["연도"] <= latest_year].pipe(add_total_trade_columns)
 
-benchmark_regions = (
-    base[
-        (base["연도"] == latest_year)
-        & (base["지역명"] != "전국")
-        & (base["지역명"] != "대전")
-    ]
-    .nlargest(3, "총교역액_백만불")["지역명"]
-    .tolist()
-)
-
-print(f"Top 3 regions by trade value in {latest_year}: {benchmark_regions}")
-
-REGIONS = benchmark_regions + ["대전", "전국"]
-frames = {region: base[base["지역명"] == region].copy() for region in REGIONS}
-
-# Sejong only enters the series in 2012, so the index base has to be the first
-# year every selected region is present in, not each region's own first row.
-y_min = max(df["연도"].min() for df in frames.values())
+y_min = base["연도"].min()
 y_max = latest_year
 
+# Every line needs the same index base, so regions that start later (Sejong
+# only enters the series in 2012) are reported and left out instead of being
+# silently rebased to a different year.
+first_year = base.groupby("지역명")["연도"].min()
+regions = sorted(first_year.index[first_year <= y_min])
+dropped = sorted(set(first_year.index) - set(regions))
+if dropped:
+    print(f"Excluded (no data in base year {y_min}): {dropped}")
+
 series = {
-    region: index_to_base(df[df["연도"] >= y_min], INDEX_COLS, y_min)
-    for region, df in frames.items()
+    region: index_to_base(base[base["지역명"] == region], INDEX_COLS, y_min)
+    for region in regions
 }
+background = [r for r in regions if r not in (HIGHLIGHT, REFERENCE)]
 
 PANELS = [
     ("총교역액_백만불_지수", "총교역액", f"지수 ({y_min}년=100)"),
@@ -86,58 +90,49 @@ PANELS = [
 ]
 
 STYLES = {
-    "대전": dict(color="#c0392b", linewidth=2.8, zorder=3),
-    "전국": dict(color="dimgrey", linewidth=2, linestyle="--", zorder=2),
+    HIGHLIGHT: dict(color="#c0392b", linewidth=2.8, zorder=3),
+    REFERENCE: dict(color="dimgrey", linewidth=2, linestyle="--", zorder=2),
 }
-
-TOP3_COLORS = {
-    region: color
-    for region, color in zip(benchmark_regions, ["plum", "lightsalmon", "lightgray"])
-}
-
-
-def get_style(region):
-    if region in STYLES:
-        return STYLES[region]
-
-    return dict(
-        color=TOP3_COLORS.get(region),
-        linewidth=1.2,
-    )
-
+BACKGROUND_STYLE = dict(color="lightgray", linewidth=1.0, zorder=1)
 
 fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
 for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
-    for region, df in series.items():
-        label = "_nolegend_" if region in benchmark_regions else region
+    for region in background:
         ax.plot(
-            df["연도"],
-            df[col],
-            label=label,
-            **get_style(region),
+            series[region]["연도"],
+            series[region][col],
+            label="_nolegend_",
+            **BACKGROUND_STYLE,
         )
 
-        if region in benchmark_regions:
-            last = df.iloc[-1]
-
-            ax.text(
-                last["연도"] + 0.2,
-                last[col],
-                region,
-                fontsize=9,
-                color="gray",
-                va="center",
-            )
-
-        ax.legend(loc="upper left", fontsize=10, frameon=False)
-        ax.set_title(
-            f"대전·주요 지역 {metric} 추이 ({y_min}~{y_max})",
-            fontsize=14,
-            fontweight="bold",
+    for region in (HIGHLIGHT, REFERENCE):
+        ax.plot(
+            series[region]["연도"],
+            series[region][col],
+            label=region,
+            **STYLES[region],
         )
-        ax.set_ylabel(ylabel)
-        ax.grid(True, linestyle="--", alpha=0.6)
+
+    ax.legend(loc="upper left", fontsize=10, frameon=False)
+    ax.set_title(
+        f"대전·전국 시도 {metric} 추이 ({y_min}~{y_max})",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.set_ylabel(ylabel)
+    ax.grid(True, linestyle="--", alpha=0.6)
+
+    last_values = {r: series[r][col].iloc[-1] for r in background}
+    bottom, top = ax.get_ylim()
+    labels = spread_labels(last_values, (top - bottom) * 0.032)
+
+    for region, y in labels.items():
+        ax.text(y_max + 0.3, y, region, fontsize=8, color="gray", va="center")
+
+    # Stacking the labels can push the topmost one past the current limit.
+    if max(labels.values()) > top:
+        ax.set_ylim(top=max(labels.values()) + (top - bottom) * 0.02)
 
 # Leave room on the right for the inline region labels.
 axes.flat[0].set_xlim(y_min - 0.5, y_max + 2.5)
