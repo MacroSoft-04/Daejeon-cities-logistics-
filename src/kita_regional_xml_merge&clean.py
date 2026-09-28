@@ -2,30 +2,17 @@
 ====================================================================
 * Author: Minseo Kim
 * Purpose:
-    - Clean and combine KITA regional monthly trade downloads into
-      standardized monthly and yearly panel datasets.
-    - Preserve the site's published yearly totals for validation and
-      derive comparable trade value, weight, balance, and unit-value metrics.
+    - Parse KITA regional monthly downloads into one long panel,
+      keeping the source's columns, units and published aggregate rows.
+    - Check each download's structure and cross-check 2025 exports
+      against the K-stat summary table.
 * Input:
-    - data/raw/kita_monthly_<region>_<YYYYMMDD>.xls
+    - data/raw/kita/kita_monthly_<region>_<YYYYMMDD>.xls
     - data/processed/kita_regional_2025.csv
-      (used as an external cross-check for 2025 regional export values)
 * Output:
-    - data/processed/kita_regional_monthly.csv
-    - data/processed/kita_regional_yearly.csv
-* Scope:
-    - All regional KITA monthly files matching kita_monthly_*.xls.
-    - Keeps both monthly observations and KITA's published annual aggregate rows.
-    - Partial latest-year monthly coverage is allowed; incomplete earlier years
-      are reported as warnings.
+    - data/interim/kita_panel.csv (thousand USD, kg; unmodified values)
 * Notes:
-    - KITA monetary values are converted from thousand USD to million USD.
-    - Trade weights are converted from kg to thousand tons.
-    - Monetary trade balance is taken from KITA's published "수지" field.
-    - Weight balance and import/export weight ratio are derived because they
-      are not provided directly in the source.
-    - Published annual values are retained as an independent check rather than
-      reconstructed solely from monthly observations.
+    - No unit conversion or derivation happens here; see kita_regional_panel_clean.py.
 ====================================================================
 """
 
@@ -33,17 +20,21 @@ import re
 from pathlib import Path
 import pandas as pd
 
-RAW_DIR = Path("data/raw/kita")
-PROCESSED_DIR = Path("data/processed")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+RAW_DIR = DATA_DIR / "raw" / "kita"
+PROCESSED_DIR = DATA_DIR / "processed"
+PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
 MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly.csv"
 YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly.csv"
 SUMMARY_PATH = PROCESSED_DIR / "kita_regional_2025.csv"
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
 FILENAME_PATTERN = re.compile(r"kita_monthly_(?P<region>.+?)_(?P<stamp>\d{8})")
 NATIONAL_ALIAS = {"전국": "총계"}
 
 
-def flatten_kita_columns(columns):
+def flatten_kita_header(columns):
     """Each 증감률 belongs to the metric on its left; pandas dedups the repeat to
     증감률.1, which drops that link."""
     out, current = [], None
@@ -73,51 +64,70 @@ def check_structure(df, name):
         print(f"WARN {name}: incomplete years\n{short}")
 
 
-def describe_coverage(df, name):
+def report_coverage(df, name):
     """Spell out where the row count comes from: full years, a partial final year,
     and one aggregate row per year."""
     monthly = df[df["집계단위"] == "월간"]
+    yearly = df[df["집계단위"] == "연간"]
     per_year = monthly.groupby("연도").size()
 
-    full = (per_year == 12).sum()
+    full = per_year[per_year == 12].index
     partial = per_year[per_year != 12]
-    years = len(per_year)
 
-    parts = [f"12×{full}"]
-    parts += [f"{n}×1({y})" for y, n in partial.items()]
-    parts.append(f"{years}(연간행)")
+    parts = [f"12×{len(full)} ({full.min()}-{full.max()})"]
+    parts += [f"{n}({y})" for y, n in partial.items()]
+    parts.append(
+        f"{len(yearly)} yearly ({yearly['연도'].min()}-{yearly['연도'].max()})"
+    )
 
-    print(f"{name}: {' + '.join(parts)} = {len(df)}")
+    total = 12 * len(full) + partial.sum() + len(yearly)
+    note = "" if total == len(df) else f"  WARN: parts sum to {total}"
+    print(f"{name}: {' + '.join(parts)} = {len(df)}{note}")
+
+
+SOURCE_LABELS = {
+    "left_only": "download_only",
+    "right_only": "summary_only",
+    "both": "both",
+}
 
 
 def compare_regions(yearly, label):
     """Cross-check each region's published annual export against the summary table,
     which is the only external source that can catch a mislabelled download."""
     summary = pd.read_csv(SUMMARY_PATH)
-    target = yearly[yearly["연도"] == 2025][["지역명", "수출_금액"]].copy()
+    target = yearly[yearly["연도"] == 2025].copy()
     target["지역명"] = target["지역명"].replace(NATIONAL_ALIAS)
 
-    merged = target.merge(
-        summary[summary["연도"] == 2025][["지역명", "수출액"]], on="지역명", how="left"
-    )
-    missing = merged[merged["수출액"].isna()]
-    checked = merged.dropna(subset=["수출액"])
+    merged = target.merge(summary, on="지역명", how="outer", indicator="source")
+    merged["source"] = merged["source"].cat.rename_categories(SOURCE_LABELS)
+
+    not_downloaded = merged.loc[merged["source"] == "summary_only", "지역명"]
+    not_in_summary = merged.loc[merged["source"] == "download_only", "지역명"]
+    checked = merged[merged["source"] == "both"].drop(columns="source")
     mismatch = checked[(checked["수출_금액"] - checked["수출액"]).abs() > 1]
 
     print(
         f"\n{label} vs {SUMMARY_PATH.name}: "
         f"{len(checked)} regions checked, {len(mismatch)} mismatched"
     )
-    if not missing.empty:
-        print(f"  not in summary: {sorted(missing['지역명'])}")
+    if not not_downloaded.empty:
+        print(f"  in summary but not downloaded: {sorted(not_downloaded)}")
+    if not not_in_summary.empty:
+        print(f"  downloaded but not in summary: {sorted(not_in_summary)}")
+    if not checked.empty:
+        print(f"  in both: {sorted(checked['지역명'])}")
     if not mismatch.empty:
         print(mismatch.to_string(index=False))
 
 
 def load_region_file(path):
-    region = FILENAME_PATTERN.match(path.stem).group("region")
+    match = FILENAME_PATTERN.match(path.stem)
+    if match is None:
+        raise ValueError(f"unexpected filename: {path.name}")
+    region = match.group("region")
     df = pd.read_excel(path, header=[2, 3])
-    df.columns = flatten_kita_columns(df.columns)
+    df.columns = flatten_kita_header(df.columns)
     df["지역명"] = region
 
     df["년월"] = df["년월"].str.replace(r"^[…\s]+", "", regex=True)
@@ -127,7 +137,7 @@ def load_region_file(path):
     df.loc[~is_year, "월"] = df.loc[~is_year, "년월"].str.rstrip("월").astype(int)
 
     check_structure(df, region)
-    describe_coverage(df, region)
+    report_coverage(df, region)
     return df
 
 

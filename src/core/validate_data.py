@@ -27,7 +27,7 @@ from utils_validate_data import (
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita_vs_trade"]
+TARGETS = ["kita_merged"]
 print("PROJECT_ROOT:", PROJECT_ROOT)
 print("RAW:", RAW)
 
@@ -69,11 +69,83 @@ DATASETS = {
         / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_중량.csv",
         "sample": PROCESSED / "kita_regional_2025.csv",
         "merged_yearly": PROCESSED / "kita_regional_yearly.csv",
+        "merged_monthly": PROCESSED / "kita_regional_monthly.csv",
     },
 }
 
+pd.set_option("display.unicode.east_asian_width", True)
 
-# separate for clarity
+THOUSAND_TO_MILLION = 1000
+# Looser than the shared TOLERANCE: KITA publishes 백만불 rounded, so summing
+# 천 달러 rows leaves up to ~0.02% noise on the import side.
+KITA_TOTAL_TOLERANCE = 0.05
+MONTHLY_SUM_TOLERANCE = 0.01
+
+# KITA uses short region names; the HS data uses full administrative names.
+REGION_MAP = {
+    "광주광역시": "광주",
+    "대구광역시": "대구",
+    "대전광역시": "대전",
+    "부산광역시": "부산",
+    "세종특별자치시": "세종",
+    "충청남도": "충남",
+    "충청북도": "충북",
+    "서울특별자치시": "서울",
+    "울산광역시": "울산",
+    "인천광역시": "인천",
+}
+
+# 세종 was carved out of 충남 연기군 in July 2012.
+# The HS source assigns 세종 figures back to 2000,
+# while KITA leaves them inside 충남 until 2012 and counts 세종 only from July 2012.
+SEJONG_SPLIT_YEAR = 2012
+
+FLOWS = {
+    "export": {"raw": "수출금액", "compared": "수출액_백만불"},
+    "import": {"raw": "수입금액", "compared": "수입액_백만불"},
+}
+SOURCES = ("_tradedata", "_kita")
+
+
+def check_kita_monthly_yearly() -> bool:
+    """Monthly rows summed per region-year must reproduce the yearly sheet."""
+    print(f"\n{'=' * 60}\nkita_monthly_yearly\n{'=' * 60}")
+
+    merged_yearly = pd.read_csv(DATASETS["kita"]["merged_yearly"])
+    merged_monthly = pd.read_csv(DATASETS["kita"]["merged_monthly"])
+
+    keys = ["지역명", "연도"]
+    value_cols = ["수출액_백만불", "수입액_백만불"]
+
+    months = merged_monthly.groupby(keys).size()
+    for year, counts in months[months.lt(12)].groupby(level="연도"):
+        print(f"{year}: only {counts.max()} months -> yearly row is a partial-year sum")
+
+    monthly_summed = merged_monthly.groupby(keys, as_index=False)[value_cols].sum()
+    compared = monthly_summed.merge(
+        merged_yearly[keys + value_cols],
+        on=keys,
+        how="outer",
+        suffixes=("_monthly", "_yearly"),
+    )
+    value_gaps = pd.DataFrame(
+        {
+            col: compared[f"{col}_monthly"] - compared[f"{col}_yearly"]
+            for col in value_cols
+        }
+    )
+    # A region-year in only one file leaves NaN, and NaN fails le(), so gaps fail too.
+    values_ok = value_gaps.abs().le(MONTHLY_SUM_TOLERANCE).all(axis=None)
+    print(
+        f"{len(compared)} region-years, max gap {value_gaps.abs().max().max():.3f} 백만불 ",
+    )
+    print(f"Monthly sums match yearly: {values_ok}")
+    if not values_ok:
+        failing = ~value_gaps.abs().le(MONTHLY_SUM_TOLERANCE).all(axis=1)
+        print(compared[failing].to_string(index=False))
+    return values_ok
+
+
 def check_kita_balance() -> bool:
     print(f"\n{'=' * 60}\nkita_balance\n{'=' * 60}")
 
@@ -115,6 +187,7 @@ def check_kita_merged() -> bool:
 
     config = DATASETS["kita"]
     merged = pd.read_csv(config["merged_yearly"])
+    sample = pd.read_csv(config["sample"])
 
     def column_sort_key(col):
         if "수출" in col and "수입" not in col:
@@ -124,49 +197,25 @@ def check_kita_merged() -> bool:
         else:
             return "other"
 
-    sorted_columns = pd.DataFrame(
-        {
-            "export": pd.Series(
-                [col for col in merged.columns if column_sort_key(col) == "export"]
-            ),
-            "import": pd.Series(
-                [col for col in merged.columns if column_sort_key(col) == "import"]
-            ),
-            "other": pd.Series(
-                [col for col in merged.columns if column_sort_key(col) == "other"]
-            ),
-        }
-    )
+    def column_sort(data: pd.DataFrame, name) -> pd.DataFrame:
+        sorted_columns = pd.DataFrame(
+            {
+                "export": pd.Series(
+                    [col for col in data.columns if column_sort_key(col) == "export"]
+                ),
+                "import": pd.Series(
+                    [col for col in data.columns if column_sort_key(col) == "import"]
+                ),
+                "other": pd.Series(
+                    [col for col in data.columns if column_sort_key(col) == "other"]
+                ),
+            }
+        )
+        print(f"\n{name}:")
+        print(sorted_columns)
 
-    print(sorted_columns)
-
-
-THOUSAND_TO_MILLION = 1000
-# Looser than the shared TOLERANCE: KITA publishes 백만불 rounded, so summing
-# 천 달러 rows leaves up to ~0.02% noise on the import side.
-KITA_TOTAL_TOLERANCE = 0.05
-
-# KITA uses short region names; the HS data uses full administrative names.
-REGION_MAP = {
-    "광주광역시": "광주",
-    "대구광역시": "대구",
-    "대전광역시": "대전",
-    "부산광역시": "부산",
-    "세종특별자치시": "세종",
-    "충청남도": "충남",
-    "충청북도": "충북",
-}
-
-# 세종 was carved out of 충남 연기군 in July 2012.
-# The HS source assigns 세종 figures back to 2000,
-# while KITA leaves them inside 충남 until 2012 and counts 세종 only from July 2012.
-SEJONG_SPLIT_YEAR = 2012
-
-FLOWS = {
-    "export": {"raw": "수출금액", "compared": "수출액_백만불"},
-    "import": {"raw": "수입금액", "compared": "수입액_백만불"},
-}
-SOURCES = ("_tradedata", "_kita")
+    column_sort(merged, "merged_yearly")
+    column_sort(sample, "sample")
 
 
 def check_kita_vs_tradedata() -> bool:
@@ -200,35 +249,57 @@ def check_kita_vs_tradedata() -> bool:
             tradedata_standard[cols["raw"]] / THOUSAND_TO_MILLION
         )
 
-    merged = tradedata_standard.merge(
-        kita[["지역명", "연도", "수출액_백만불", "수입액_백만불"]],
-        on=["지역명", "연도"],
-        how="inner",
-        validate="one_to_one",
-        suffixes=SOURCES,
-    )
-    for flow, cols in FLOWS.items():
-        tradedata_col, kita_col = (cols["compared"] + suffix for suffix in SOURCES)
-        merged[f"{flow}_balance%"] = (
-            (merged[tradedata_col] - merged[kita_col]) / merged[kita_col] * 100
+    def add_balance_columns(df: pd.DataFrame) -> pd.DataFrame:
+        """Add tradedata-minus-kita gaps per flow, absolute and as % of KITA."""
+        new_cols = {}
+        for flow, cols in FLOWS.items():
+            tradedata_col, kita_col = (cols["compared"] + suffix for suffix in SOURCES)
+            gap = df[tradedata_col] - df[kita_col]
+            new_cols[f"{flow}_balance"] = gap
+            new_cols[f"{flow}_balance%"] = gap / df[kita_col] * 100
+        return df.assign(**new_cols)
+
+    merged = add_balance_columns(
+        tradedata_standard.merge(
+            kita[["지역명", "연도", "수출액_백만불", "수입액_백만불"]],
+            on=["지역명", "연도"],
+            how="inner",
+            validate="one_to_one",
+            suffixes=SOURCES,
         )
-        merged[f"{flow}_balance"] = merged[tradedata_col] - merged[kita_col]
+    )
 
     deviation_cols = ["export_balance%", "import_balance%"]
     off = merged[merged[deviation_cols].abs().gt(KITA_TOTAL_TOLERANCE).any(axis=1)]
 
     SPLIT_REGIONS = ["충남", "세종"]
 
-    unfolded = (
-        tradedata[tradedata["기간"] <= SEJONG_SPLIT_YEAR]
+    source_labels = {
+        "left_only": "tradedata_only",
+        "right_only": "kita_only",
+        "both": "both",
+    }
+
+    t_unfolded = (
+        tradedata[tradedata["기간"].le(SEJONG_SPLIT_YEAR)]
         .assign(지역명=lambda df: df["지역"].map(REGION_MAP))
         .groupby(["지역명", "기간"], as_index=False)[["수출금액", "수입금액"]]
         .sum()
         .rename(columns={"기간": "연도"})
     )
-    kita_before_split = kita.loc[kita["연도"].lt(SEJONG_SPLIT_YEAR), ["지역명", "연도"]]
-    coverage = unfolded[["지역명", "연도"]].merge(
-        kita_before_split, on=["지역명", "연도"], how="outer", indicator=True
+    kita_before_split = kita.loc[kita["연도"].le(SEJONG_SPLIT_YEAR), ["지역명", "연도"]]
+    coverage = (
+        t_unfolded[["지역명", "연도"]]
+        .merge(
+            kita_before_split,
+            on=["지역명", "연도"],
+            how="outer",
+            indicator="source",
+        )
+        .loc[lambda df: df["지역명"].isin(SPLIT_REGIONS)]
+        .assign(source=lambda df: df["source"].cat.rename_categories(source_labels))
+        .groupby(["지역명", "source"], observed=True)["연도"]
+        .agg(["min", "max", "size"])
     )
 
     compared_cols = [cols["compared"] for cols in FLOWS.values()]
@@ -239,14 +310,11 @@ def check_kita_vs_tradedata() -> bool:
         in_window = df["지역명"].isin(SPLIT_REGIONS) & df["연도"].le(SEJONG_SPLIT_YEAR)
         return df[in_window].groupby("연도")[compared_cols].sum()
 
-    folded = fold_sejong(tradedata_standard).join(
-        fold_sejong(kita), lsuffix=SOURCES[0], rsuffix=SOURCES[1], how="outer"
-    )
-    for flow, cols in FLOWS.items():
-        tradedata_col, kita_col = (cols["compared"] + suffix for suffix in SOURCES)
-        folded[f"{flow}_balance%"] = (
-            (folded[tradedata_col] - folded[kita_col]) / folded[kita_col] * 100
+    folded = add_balance_columns(
+        fold_sejong(tradedata_standard).join(
+            fold_sejong(kita), lsuffix=SOURCES[0], rsuffix=SOURCES[1], how="outer"
         )
+    )
     # NaN (a year missing on one side) fails the comparison, which is the safe default.
     folded_ok = folded[deviation_cols].abs().le(KITA_TOTAL_TOLERANCE).all(axis=1)
 
@@ -255,7 +323,18 @@ def check_kita_vs_tradedata() -> bool:
     )
     unexplained = off[~expected]
 
-    print(f"\n--- KITA vs sectioned HS totals ---")
+    print(f"\n--- KITA vs tradedata regions ---")
+    print(
+        pd.DataFrame(
+            {
+                "tradedata": pd.Series(tradedata["지역"].unique()),
+                "kita": pd.Series(kita["지역명"].unique()),
+            }
+        ).to_string()
+    )
+    print(tradedata["지역"].unique() or kita["지역명"].unique())
+
+    print(f"\n--- KITA vs tradedata totals ---")
     regions, years = merged["지역명"].nunique(), merged["연도"].nunique()
     full_grid = regions * years
     print(
@@ -265,40 +344,20 @@ def check_kita_vs_tradedata() -> bool:
     # An inner join drops pairs the two sources don't share; naming them keeps a
     # coverage gap from passing as a complete comparison.
     if missing := full_grid - len(merged):
-        absent = (
-            pd.MultiIndex.from_product(
-                [merged["지역명"].unique(), merged["연도"].unique()],
-                names=["지역명", "연도"],
-            )
-            .difference(pd.MultiIndex.from_frame(merged[["지역명", "연도"]]))
-            .to_frame(index=False)
-        )
-        ranges = absent.groupby("지역명").agg(["min", "max", "size"])
         print(f"{missing} pairs in only one file:")
-        print(f"\n{ranges.to_string()}\n")
+        print(coverage.to_string())
 
-    if not off.empty:
-        print("balance = tradedata - kita")
-        print(
-            off[["지역명", "연도", "export_balance", "import_balance"]].to_string(
-                index=False
-            )
-        )
-
+    print(f"\n--- 충남+세종 combined, {folded.index.min()}-{SEJONG_SPLIT_YEAR} ---")
     print(
-        coverage[coverage["지역명"].isin(SPLIT_REGIONS)]
-        .pivot(index="연도", columns="지역명", values="_merge")
-        .to_string()
+        f"Before July {SEJONG_SPLIT_YEAR}, KITA books 세종 inside 충남, "
+        "while tradedata reports it separately."
     )
-
-    print(f"\n--- 충남+세종 folded, up to {SEJONG_SPLIT_YEAR} ---")
-    print(folded.round(3).to_string())
-
-    print(f"Within {KITA_TOTAL_TOLERANCE}%: {len(merged) - len(off)}")
-    print(f"Known 세종-split exceptions: {expected.sum()}")
-    if not unexplained.empty:
-        print("Unexplained mismatches:")
-        print(unexplained[["지역명", "연도"] + deviation_cols].to_string())
+    print(
+        "Each row sums 충남 and 세종 for that year in both files, "
+        "so the totals should match. gap = (tradedata - kita) / kita, in %."
+    )
+    balance_cols = [f"{flow}_balance{s}" for flow in FLOWS for s in ("%")]
+    print(f"\n{folded[balance_cols].round(4).to_string()}")
     return unexplained.empty
 
 
@@ -606,10 +665,11 @@ CHECKS = {
     "gap_stability": check_gap_stability,
     "total_row": total_row,
     "share_stability": check_share_stability,
-    "kita_regional": check_kita_regional_2025,
-    "kita_merged": check_kita_merged,
+    "kita_sample": check_kita_regional_2025,
+    "kita_columns": check_kita_merged,
     "kita_balance": check_kita_balance,
     "kita_vs_trade": check_kita_vs_tradedata,
+    "kita_monthly_yearly": check_kita_monthly_yearly,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)
