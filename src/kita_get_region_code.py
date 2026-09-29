@@ -4,7 +4,7 @@ from utils_html import get_html
 import time
 
 base_dir = Path(".")
-save_dir = base_dir / "data/raw"
+save_dir = base_dir / "data/raw/kita"
 save_dir.mkdir(parents=True, exist_ok=True)
 target_path = save_dir / "kita_region_code_data.csv"
 
@@ -12,16 +12,6 @@ LEFT_CELL = "td.HideCol0C2"
 RIGHT_CODE = "td.HideCol1C1:visible"
 RIGHT_NAME = "td.HideCol1C2:visible"
 ROW_OFFSET = 1  # first row is the header
-EXPECTED_ROWS = {
-    "전국": 1,
-    "세종": 1,
-    "기타": 1,
-    "대전": 6,
-    "광주": 6,
-    "울산": 6,
-    "서울": 26,
-    "부산": 17,
-}
 
 
 def extract_right_panel(page):
@@ -73,11 +63,6 @@ def parse_region_codes(page):
         except TimeoutError as exc:
             print(f"WARN {exc}")
             continue
-
-        expected = EXPECTED_ROWS.get(region)
-        if expected and len(current) != expected:
-            print(f"WARN {region}: got {len(current)} rows, expected {expected}")
-
         rows.extend({"parent_region": region, "code": c, "name": n} for c, n in current)
         print(f"{region}: {len(current)} rows")
     return rows

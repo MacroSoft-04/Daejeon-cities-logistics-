@@ -5,8 +5,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 
-MONTHLY_SAMPLE = PROCESSED_DIR / "kita_regional_monthly.csv"
-YEARLY_SAMPLE = PROCESSED_DIR / "kita_regional_yearly.csv"
+MONTHLY_SAMPLE = PROCESSED_DIR / "kita_regional_monthly_cleaned.csv"
+YEARLY_SAMPLE = PROCESSED_DIR / "kita_regional_yearly_cleaned.csv"
 
 COMPARISON_PATH = PROCESSED_DIR / "codebook_comparison_regions.csv"
 BASELINE_REGION = "전국"

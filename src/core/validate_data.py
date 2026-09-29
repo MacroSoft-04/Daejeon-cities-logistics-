@@ -27,7 +27,7 @@ from utils_validate_data import (
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita_merged"]
+TARGETS = ["kita_monthly_yearly"]
 print("PROJECT_ROOT:", PROJECT_ROOT)
 print("RAW:", RAW)
 
@@ -68,8 +68,8 @@ DATASETS = {
         "raw_2": RAW
         / "지자체 수출입 총괄 _ 국내통계 - K-stat 수출입 무역통계_중량.csv",
         "sample": PROCESSED / "kita_regional_2025.csv",
-        "merged_yearly": PROCESSED / "kita_regional_yearly.csv",
-        "merged_monthly": PROCESSED / "kita_regional_monthly.csv",
+        "merged_yearly": PROCESSED / "kita_regional_yearly_cleaned.csv",
+        "merged_monthly": PROCESSED / "kita_regional_monthly_cleaned.csv",
     },
 }
 
@@ -105,45 +105,6 @@ FLOWS = {
     "import": {"raw": "수입금액", "compared": "수입액_백만불"},
 }
 SOURCES = ("_tradedata", "_kita")
-
-
-def check_kita_monthly_yearly() -> bool:
-    """Monthly rows summed per region-year must reproduce the yearly sheet."""
-    print(f"\n{'=' * 60}\nkita_monthly_yearly\n{'=' * 60}")
-
-    merged_yearly = pd.read_csv(DATASETS["kita"]["merged_yearly"])
-    merged_monthly = pd.read_csv(DATASETS["kita"]["merged_monthly"])
-
-    keys = ["지역명", "연도"]
-    value_cols = ["수출액_백만불", "수입액_백만불"]
-
-    months = merged_monthly.groupby(keys).size()
-    for year, counts in months[months.lt(12)].groupby(level="연도"):
-        print(f"{year}: only {counts.max()} months -> yearly row is a partial-year sum")
-
-    monthly_summed = merged_monthly.groupby(keys, as_index=False)[value_cols].sum()
-    compared = monthly_summed.merge(
-        merged_yearly[keys + value_cols],
-        on=keys,
-        how="outer",
-        suffixes=("_monthly", "_yearly"),
-    )
-    value_gaps = pd.DataFrame(
-        {
-            col: compared[f"{col}_monthly"] - compared[f"{col}_yearly"]
-            for col in value_cols
-        }
-    )
-    # A region-year in only one file leaves NaN, and NaN fails le(), so gaps fail too.
-    values_ok = value_gaps.abs().le(MONTHLY_SUM_TOLERANCE).all(axis=None)
-    print(
-        f"{len(compared)} region-years, max gap {value_gaps.abs().max().max():.3f} 백만불 ",
-    )
-    print(f"Monthly sums match yearly: {values_ok}")
-    if not values_ok:
-        failing = ~value_gaps.abs().le(MONTHLY_SUM_TOLERANCE).all(axis=1)
-        print(compared[failing].to_string(index=False))
-    return values_ok
 
 
 def check_kita_balance() -> bool:
@@ -669,7 +630,6 @@ CHECKS = {
     "kita_columns": check_kita_merged,
     "kita_balance": check_kita_balance,
     "kita_vs_trade": check_kita_vs_tradedata,
-    "kita_monthly_yearly": check_kita_monthly_yearly,
 }
 
 selected = sys.argv[1:] or TARGETS or list(DATASETS) + list(CHECKS)

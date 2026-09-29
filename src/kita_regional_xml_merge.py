@@ -2,23 +2,28 @@
 ====================================================================
 * Author: Minseo Kim
 * Purpose:
-    - Parse KITA regional monthly downloads into one long panel,
-      keeping the source's columns, units and published aggregate rows.
-    - Check each download's structure and cross-check 2025 exports
+    - Parse KITA regional monthly downloads into one long panel and split
+      it into monthly and yearly rows, keeping the source's columns, units
+      and published values.
+    - Validate each download's structure, and cross-check the yearly figures
       against the K-stat summary table.
 * Input:
     - data/raw/kita/kita_monthly_<region>_<YYYYMMDD>.xls
-    - data/processed/kita_regional_2025.csv
+    - data/processed/kita_regional_2025.csv (single-year summary)
 * Output:
-    - data/interim/kita_panel.csv (thousand USD, kg; unmodified values)
+    - data/processed/kita_regional_monthly.csv
+    - data/processed/kita_regional_yearly.csv
+      (thousand USD, kg; unmodified values)
 * Notes:
-    - No unit conversion or derivation happens here; see kita_regional_panel_clean.py.
+    - Only parsing columns (연도, 월, 연월, 집계단위) are added; no unit
+      conversion or derived measures. See kita_merged_clean.py.
 ====================================================================
 """
 
 import re
-from pathlib import Path
+import numpy as np
 import pandas as pd
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -148,7 +153,7 @@ SUMMARY_COLUMNS = {
 
 
 def compare_regions(yearly, label):
-    """Cross-check each region's published annual export against the summary table,
+    """Cross-check each region's yearly figures against the summary table,
     which is the only external source that can catch a mislabelled download."""
     summary = pd.read_csv(SUMMARY_PATH)
     year = summary["연도"].unique()
@@ -198,6 +203,70 @@ def check_unique(df, keys, label):
     print(f"{label}: no duplicate {key_name} rows ({len(df)} checked)")
 
 
+# thousand USD or kg; the published figures are rounded, and the largest observed gap is 3
+MONTHLY_SUM_TOLERANCE = 5
+SUM_COLUMNS = ["수출_금액", "수입_금액", "수출_중량", "수입_중량"]
+
+
+def check_monthly_vs_yearly(monthly, yearly, value_cols=SUM_COLUMNS):
+    """Monthly rows summed per region-year must reproduce the published yearly rows."""
+    keys = ["지역명", "연도"]
+
+    months = monthly.groupby(keys).size()
+    for year, counts in months[months.lt(12)].groupby(level="연도"):
+        print(f"{year}: only {counts.max()} months -> yearly row is a partial-year sum")
+
+    summed = monthly.groupby(keys, as_index=False)[value_cols].sum()
+    compared = summed.merge(
+        yearly[keys + value_cols],
+        on=keys,
+        how="outer",
+        suffixes=("_monthly", "_yearly"),
+    )
+
+    gaps = pd.DataFrame(
+        {
+            c: (compared[f"{c}_monthly"] - compared[f"{c}_yearly"]).abs()
+            for c in value_cols
+        }
+    )
+    # A region-year in only one frame leaves NaN, and NaN fails le(), so it counts as a gap.
+    within = gaps.le(MONTHLY_SUM_TOLERANCE)
+
+    print(f"{len(compared)} region-years compared")
+    for c in value_cols:
+        denome = compared[f"{c}_yearly"].abs()
+        rel = (gaps[c] / denome.where(denome > 0)).max()
+        print(f"  {c}: max abs {gaps[c].max():,.1f}, max rel {rel:.4%}")
+    if not within.all(axis=None):
+        failing = ~within.all(axis=1)
+        raise ValueError(
+            f"monthly sums don't match yearly rows:\n{compared[failing].to_string(index=False)}"
+        )
+    print(f"monthly sums match yearly rows (tolerance {MONTHLY_SUM_TOLERANCE})")
+
+
+KEY_COLUMNS = ["지역명", "연도", "월", "연월", "년월", "집계단위"]
+PRINT_COLUMNS = ["지역명", "연월", "수출_금액", "수입_금액", "수출_중량", "수입_중량"]
+
+
+def mask_zero_trade(monthly: pd.DataFrame) -> pd.DataFrame:
+    """A month with no trade in either direction is a period the region wasn't
+    reported under that name (세종 before its July 2012 launch, 광주 after its
+    July 2026 merger into 전남광주), not a real zero. NaN keeps the monthly grid
+    intact so lag features still line up."""
+    monthly = monthly.copy()
+    no_trade = (monthly["수출_금액"] == 0) & (monthly["수입_금액"] == 0)
+    measures = monthly.columns.difference(KEY_COLUMNS)
+    monthly.loc[no_trade, measures] = np.nan
+    print(
+        f"masked {no_trade.sum()} zero-trade months in "
+        f"{sorted(monthly.loc[no_trade, '지역명'].unique())}"
+        f"\n{monthly.loc[no_trade, PRINT_COLUMNS].head(20).to_string(index=False)}"
+    )
+    return monthly
+
+
 def check_round_trip(df, path, parse_dates=None):
     """A CSV drops dtypes, so compare what the cleaner will actually read
     with what was written, not just that the file exists."""
@@ -216,18 +285,32 @@ def check_round_trip(df, path, parse_dates=None):
     print(f"{path.name}: round-trip ok ({len(back)} rows, {back.shape[1]} columns)")
 
 
+CORE_COLUMN = ["수출_금액", "수입_금액", "수출_중량", "수입_중량", "수지"]
+TOLERANCE = 0.01
+
+
+def check_panel(panel, core=CORE_COLUMN):
+    """Check that the panel has no missing values.
+    Check whether 수지 is derived from the other two columns."""
+    missing = panel[core].isna().sum()
+    if missing.any():
+        print(f"WARN missing values:\n{missing[missing > 0]}")
+    else:
+        print(f"no missing values in {', '.join(core)}")
+
+    gap = (panel["수지"] - (panel["수출_금액"] - panel["수입_금액"])).abs().max()
+    # 수지 is published separately, so it can disagree with the two series it summarises.
+    if gap > TOLERANCE:
+        raise ValueError(f"수지 differs from 수출-수입 by up to {gap:,.1f}")
+    print(f"수지 matches 수출-수입 (max abs gap {gap:,.1f})")
+
+
 if __name__ == "__main__":
     panel = build_panel(RAW_DIR)
-    print("\n---figure comparison(yearly vs sum of monthly)---")
-    for col in ["수출_금액", "수입_금액", "수출_중량", "수입_중량"]:
-        check = (
-            panel[panel["집계단위"] == "월간"].groupby(["지역명", "연도"])[col].sum()
-        )
-        truth = panel[panel["집계단위"] == "연간"].set_index(["지역명", "연도"])[col]
-        diff = (check - truth).abs()
-        rel = (diff / truth.abs()).max()
-        print(f"{col}: max abs {diff.max():,.1f}, max rel {rel:.2%}")
     monthly, yearly = split_panel(panel)
+
+    print("\n---check_monthly_vs_yearly---")
+    check_monthly_vs_yearly(monthly, yearly)
 
     print("\n---check_unique---")
     check_unique(monthly, ["지역명", "연월"], "monthly")
@@ -237,15 +320,11 @@ if __name__ == "__main__":
     compare_regions(yearly, "downloads (yearly rows)")
 
     print("\n---check_na---")
-    core = ["수출_금액", "수입_금액", "수출_중량", "수입_중량", "수지"]
-    missing = panel[core].isna().sum()
-    if missing.any():
-        print(f"WARN missing values:\n{missing[missing > 0]}")
-    else:
-        print(f"no missing values in {', '.join(core)}")
+    check_panel(monthly)
+    check_panel(yearly)
 
-    gap = (panel["수지"] - (panel["수출_금액"] - panel["수입_금액"])).abs().max()
-    print(f"수지 vs 수출-수입: max abs {gap:,.1f}")
+    print("\n---check_zero_trade---")
+    monthly = mask_zero_trade(monthly)
 
     monthly.to_csv(MONTHLY_PATH, index=False, encoding="utf-8-sig")
     yearly.to_csv(YEARLY_PATH, index=False, encoding="utf-8-sig")

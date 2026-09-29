@@ -36,9 +36,9 @@ import pandas as pd
 from datetime import datetime
 
 base_dir = Path(".")
-save_dir = base_dir / "data/raw"
+save_dir = base_dir / "data/raw/kita"
 save_dir.mkdir(parents=True, exist_ok=True)
-reference_path = save_dir / "kita_region_code_data.csv"
+reference_path = save_dir / "kita" / "kita_region_code_data.csv"
 
 REGION_NAMES = [
     "전국",
