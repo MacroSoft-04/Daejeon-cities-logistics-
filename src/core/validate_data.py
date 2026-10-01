@@ -27,7 +27,7 @@ from utils_validate_data import (
 RAW = PROJECT_ROOT / "data/raw"
 PROCESSED = PROJECT_ROOT / "data/processed"
 
-TARGETS = ["kita_monthly_yearly"]
+TARGETS = ["kita_vs_trade"]
 print("PROJECT_ROOT:", PROJECT_ROOT)
 print("RAW:", RAW)
 

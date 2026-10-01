@@ -26,7 +26,7 @@ data_dir.mkdir(parents=True, exist_ok=True)
 save_dir = base_dir / "output"
 
 # # load data
-file_path = data_dir / "tradedata_dj_2020_2025.csv"
+file_path = data_dir / "tradedata_2000_2025_cleaned.csv"
 df = pd.read_csv(file_path)
 
 df_grouped = df.groupby(["year", "section_name"], as_index=False).agg(
