@@ -16,7 +16,7 @@ DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
-DATA_PATH = DATA_DIR / "kita_regional_monthly.csv"
+DATA_PATH = DATA_DIR / "kita_regional_monthly_added.csv"
 SAVE_PATH = SAVE_DIR / "m_Daejeon_monthly_avg_value.jpg"
 
 REGION = "대전"

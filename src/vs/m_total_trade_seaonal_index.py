@@ -10,8 +10,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import font_manager
 
-DATA_PATH = Path("/mnt/user-data/uploads/kita_regional_monthly.csv")
-OUTPUT_PATH = Path("/mnt/user-data/outputs/daejeon_total_trade_seasonal_index.png")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data"
+PROCESSED_DIR = DATA_DIR / "processed"
+OUTPUT_DIR = PROJECT_ROOT / "output"
+
+DATA_PATH = PROCESSED_DIR / "kita_regional_monthly_added.csv"
+OUTPUT_PATH = OUTPUT_DIR / "m_daejeon_total_trade_seasonal_index.png"
 
 FOCUS_REGION = "대전"
 BENCHMARK_REGION = "전국"
