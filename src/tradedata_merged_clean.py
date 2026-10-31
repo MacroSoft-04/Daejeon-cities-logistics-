@@ -42,8 +42,8 @@ import pandas as pd
 base_dir = Path(".")
 data_dir = base_dir / "data/processed"
 base_dir.mkdir(parents=True, exist_ok=True)
-MERGED_PATH = data_dir / "tradedata_2000_2025_merged.csv"
-CLEANED_PATH = data_dir / "tradedata_2000_2025_cleaned.csv"
+MERGED_PATH = data_dir / "tradedata_2000_2025_1_merged.csv"
+CLEANED_PATH = data_dir / "tradedata_2000_2025_2_cleaned.csv"
 
 UNCLASSIFIED = "99"
 

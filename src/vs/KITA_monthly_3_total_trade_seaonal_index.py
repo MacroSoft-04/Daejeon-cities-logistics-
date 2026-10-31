@@ -15,8 +15,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
-DATA_PATH = PROCESSED_DIR / "kita_regional_monthly_added.csv"
-OUTPUT_PATH = OUTPUT_DIR / "m_daejeon_total_trade_seasonal_index.png"
+DATA_PATH = PROCESSED_DIR / "kita_regional_monthly_4_added.csv"
+OUTPUT_PATH = OUTPUT_DIR / "KITA_monthly_3_Daejeon_total_trade_seasonal_index.png"
 
 FOCUS_REGION = "대전"
 BENCHMARK_REGION = "전국"
@@ -52,6 +52,9 @@ def set_korean_font() -> None:
 
 def load_data(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path, parse_dates=["연월"])
+    df = df[
+        ~df["지역명"].isin(["충남", "세종"])
+    ].copy()  # Exclude Chungnam and Sejong for consistency.
     df["월"] = df["연월"].dt.month
     for name, (export_col, import_col) in TOTALS.items():
         df[name] = df[export_col] + df[import_col]

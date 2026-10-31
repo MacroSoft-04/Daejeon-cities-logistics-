@@ -5,14 +5,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 
-MONTHLY_SAMPLE = PROCESSED_DIR / "kita_regional_monthly_cleaned.csv"
-YEARLY_SAMPLE = PROCESSED_DIR / "kita_regional_yearly_cleaned.csv"
+MONTHLY_SAMPLE = PROCESSED_DIR / "kita_regional_monthly_2_cleaned.csv"
+YEARLY_SAMPLE = PROCESSED_DIR / "kita_regional_yearly_2_cleaned.csv"
 
 COMPARISON_PATH = PROCESSED_DIR / "codebook_comparison_regions.csv"
 BASELINE_REGION = "전국"
 
-MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_filtered.csv"
-YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_filtered.csv"
+MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_3_filtered.csv"
+YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_3_filtered.csv"
 
 SOURCES = {"monthly": MONTHLY_SAMPLE, "yearly": YEARLY_SAMPLE}
 OUTPUTS = {"monthly": MONTHLY_PATH, "yearly": YEARLY_PATH}

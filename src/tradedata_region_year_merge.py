@@ -28,8 +28,8 @@ base_dir = Path(".")
 origin_dir = base_dir / "data/raw/trade_data"
 data_dir = base_dir / "data/processed"
 origin_dir.mkdir(parents=True, exist_ok=True)
-hs_cat = pd.read_csv(data_dir / "codebook_hs_categories.csv", dtype={"HS코드": str})
-save_path = data_dir / "tradedata_2000_2025_merged.csv"
+hs_cat = pd.read_csv(data_dir / "codebook_hs_chapter.csv", dtype={"HS코드": str})
+save_path = data_dir / "tradedata_2000_2025_1_merged.csv"
 
 dfs = []
 

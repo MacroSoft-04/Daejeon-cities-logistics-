@@ -11,8 +11,8 @@
     - data/raw/kita/kita_monthly_<region>_<YYYYMMDD>.xls
     - data/processed/kita_regional_2025.csv (single-year summary)
 * Output:
-    - data/processed/kita_regional_monthly.csv
-    - data/processed/kita_regional_yearly.csv
+    - data/processed/kita_regional_monthly_1_merged.csv
+    - data/processed/kita_regional_yearly_1_merged.csv
       (thousand USD, kg; unmodified values)
 * Notes:
     - Only parsing columns (연도, 월, 연월, 집계단위) are added; no unit
@@ -23,6 +23,7 @@
 import re
 import numpy as np
 import pandas as pd
+import xlrd
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -31,8 +32,8 @@ RAW_DIR = DATA_DIR / "raw" / "kita"
 PROCESSED_DIR = DATA_DIR / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly.csv"
-YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly.csv"
+MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_1_merged.csv"
+YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_1_merged.csv"
 SUMMARY_PATH = PROCESSED_DIR / "kita_regional_2025.csv"
 
 FILENAME_PATTERN = re.compile(r"kita_monthly_(?P<region>.+?)_(?P<stamp>\d{8})")
@@ -95,7 +96,7 @@ def load_region_file(path):
     if match is None:
         raise ValueError(f"unexpected filename: {path.name}")
     region = match.group("region")
-    df = pd.read_excel(path, header=[2, 3])
+    df = pd.read_excel(path, header=[2, 3], engine="xlrd")
     df.columns = flatten_kita_header(df.columns)
     df["지역명"] = region
 

@@ -26,8 +26,9 @@ DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-YEARLY_PATH = DATA_DIR / "kita_regional_yearly.csv"
+YEARLY_PATH = DATA_DIR / "kita_regional_yearly_4_added.csv"
 YEARLY = pd.read_csv(YEARLY_PATH)
+SAVE_PATH = SAVE_DIR / "KITA_yearly_1_Daejeon_trade_flow.jpg"
 
 HIGHLIGHT = "대전"
 REFERENCE = "전국"
@@ -65,6 +66,7 @@ def spread_labels(values, min_gap):
 # The most recent year in the file is still accumulating, so it is not comparable.
 latest_year = YEARLY["연도"].max() - 1
 base = YEARLY[YEARLY["연도"] <= latest_year].pipe(add_total_trade_columns)
+base = base[~base["지역명"].isin(["충남", "세종"])]
 
 y_min = base["연도"].min()
 y_max = latest_year
@@ -138,6 +140,5 @@ for ax, (col, metric, ylabel) in zip(axes.flat, PANELS):
 axes.flat[0].set_xlim(y_min - 0.5, y_max + 2.5)
 
 fig.tight_layout()
-SAVE_PATH = SAVE_DIR / "05_Daejeon_trade_flow.jpg"
 fig.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
 plt.close(fig)

@@ -15,8 +15,8 @@ DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
-DATA_PATH = DATA_DIR / "kita_regional_monthly_added.csv"
-SAVE_PATH = SAVE_DIR / "m_Daejeon_region_seasonal_index.jpg"
+DATA_PATH = DATA_DIR / "kita_regional_monthly_4_added.csv"
+SAVE_PATH = SAVE_DIR / "KITA_monthly_1_Daejeon_region_seasonal_index.jpg"
 
 FOCUS_REGION = "대전"
 BENCHMARK_REGION = "전국"
@@ -47,7 +47,10 @@ def load_data(path: Path) -> pd.DataFrame:
     late_regions = region_start[region_start > first_year].index.tolist()
     if late_regions:
         print(f"Excluded (series starts after {first_year}): {', '.join(late_regions)}")
-    df = df[~df["지역명"].isin(late_regions)]
+    df = df[~df["지역명"].isin(late_regions)].copy()
+    df = df[
+        ~df["지역명"].isin(["충남", "세종"])
+    ].copy()  # Exclude Chungnam and Sejong for consistency.
 
     # Keep only years with all 12 months for every region: a partial year would add an
     # extra, trend-inflated observation to its early months only.

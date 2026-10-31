@@ -6,11 +6,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 
-MONTHLY_INPUT = PROCESSED_DIR / "kita_regional_monthly_filtered.csv"
-YEARLY_INPUT = PROCESSED_DIR / "kita_regional_yearly_filtered.csv"
+MONTHLY_INPUT = PROCESSED_DIR / "kita_regional_monthly_3_filtered.csv"
+YEARLY_INPUT = PROCESSED_DIR / "kita_regional_yearly_3_filtered.csv"
 
-MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_added.csv"
-YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_added.csv"
+MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_4_added.csv"
+YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_4_added.csv"
 
 SOURCES = {"monthly": MONTHLY_INPUT, "yearly": YEARLY_INPUT}
 OUTPUTS = {"monthly": MONTHLY_PATH, "yearly": YEARLY_PATH}

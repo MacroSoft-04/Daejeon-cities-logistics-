@@ -33,11 +33,11 @@ DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-MONTHLY_INPUT = PROCESSED_DIR / "kita_regional_monthly.csv"
-YEARLY_INPUT = PROCESSED_DIR / "kita_regional_yearly.csv"
+MONTHLY_INPUT = PROCESSED_DIR / "kita_regional_monthly_1_merged.csv"
+YEARLY_INPUT = PROCESSED_DIR / "kita_regional_yearly_1_merged.csv"
 
-MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_cleaned.csv"
-YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_cleaned.csv"
+MONTHLY_PATH = PROCESSED_DIR / "kita_regional_monthly_2_cleaned.csv"
+YEARLY_PATH = PROCESSED_DIR / "kita_regional_yearly_2_cleaned.csv"
 
 
 def add_balance_columns(panel):

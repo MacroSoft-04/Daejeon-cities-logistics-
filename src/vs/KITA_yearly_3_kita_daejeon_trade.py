@@ -33,8 +33,9 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
-YEARLY_PATH = DATA_DIR / "kita_regional_yearly.csv"
+YEARLY_PATH = DATA_DIR / "kita_regional_yearly_4_added.csv"
 YEARLY = pd.read_csv(YEARLY_PATH)
+SAVE_PATH = SAVE_DIR / "KITA_yearly_3_Daejeon_trade_above_below.jpg"
 
 REGION = "대전"
 EXPORT_COLOR = "#c0392b"
@@ -111,6 +112,5 @@ fig.legend(
 )
 fig.tight_layout(rect=(0, 0, 1, 0.94))
 
-SAVE_PATH = SAVE_DIR / "04_Daejeon_trade_above_below.jpg"
 fig.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
 plt.close(fig)

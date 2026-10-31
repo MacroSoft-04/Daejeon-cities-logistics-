@@ -27,8 +27,11 @@ DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-YEARLY_PATH = DATA_DIR / "kita_regional_yearly.csv"
+YEARLY_PATH = DATA_DIR / "kita_regional_yearly_4_added.csv"
 YEARLY = pd.read_csv(YEARLY_PATH)
+SAVE_PATH = (
+    SAVE_DIR / "KITA_yearly_2_Daejeon_target_region_trade_flow_volume_weight_unit.jpg"
+)
 
 latest_year = YEARLY["연도"].max() - 1
 daejeon = YEARLY[(YEARLY["지역명"] == "대전") & (YEARLY["연도"] <= latest_year)].copy()
@@ -58,6 +61,7 @@ INDEX_COLS = [
 ]
 
 base = YEARLY[YEARLY["연도"] <= latest_year].pipe(add_total_trade_columns)
+base = base[~base["지역명"].isin(["충남", "세종"])].copy()
 
 benchmark_regions = (
     base[
@@ -170,6 +174,5 @@ fig.legend(
 )
 fig.tight_layout(rect=(0, 0, 1, 0.955))
 
-SAVE_PATH = SAVE_DIR / "06_Daejeon_target_region_trade_flow_volume_weight_unit.jpg"
 fig.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
 plt.close(fig)
