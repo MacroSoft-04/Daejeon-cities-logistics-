@@ -15,7 +15,7 @@
 
 SELECT column_name, data_type, character_maximum_length
 FROM information_schema.columns
-WHERE table_name IN ('codebook_hs_section', 'tradedata_2000_2025_cleaned')
+WHERE table_name IN ('codebook_hs_section', 'tradedata_2000_2025_2_cleaned')
   AND column_name IN ('부코드', '류코드', '류_시작', '류_끝');
 
 WITH sectioned AS (
@@ -26,7 +26,7 @@ WITH sectioned AS (
         , m.부코드
         , m.부명_약칭
         , m.부명_공식
-    FROM tradedata_2000_2025_cleaned t
+    FROM tradedata_2000_2025_2_cleaned t
     LEFT JOIN codebook_hs_section m
         -- CAST first: if HS코드 is ever loaded as an integer, '1' must become '01'.
         ON t.류코드 BETWEEN m.류_시작 AND m.류_끝

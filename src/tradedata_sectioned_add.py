@@ -24,8 +24,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 
-INPUT = PROCESSED_DIR / "tradedata_2000_2025_sectioned.csv"
-SAVE_PATH = PROCESSED_DIR / "tradedata_2000_2025_added.csv"
+INPUT = PROCESSED_DIR / "tradedata_2000_2025_3_sectioned.csv"
+SAVE_PATH = PROCESSED_DIR / "tradedata_2000_2025_4_added.csv"
 
 YEAR = "기간"
 HS_KEYS = [YEAR, "부코드", "부명약칭", "부명_공식", "류코드", "류명약칭", "류명_공식"]

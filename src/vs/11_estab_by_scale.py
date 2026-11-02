@@ -17,7 +17,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from utils_chart import PALETTE, save, use_korean_font
+from core.utils_chart import PALETTE, save, use_korean_font
 from core.utils_validate_data import PROJECT_ROOT
 
 ESTAB_SRC = PROJECT_ROOT / "data/processed/kosis_estab_survey.csv"

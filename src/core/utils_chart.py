@@ -6,12 +6,13 @@
 ====================================================================
 """
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 
-from core.utils_validate_data import PROJECT_ROOT
-
-OUTPUT_DIR = PROJECT_ROOT / "output"
+BASE_DIR = Path(__file__).resolve().parents[2]
+OUTPUT_DIR = BASE_DIR / "output"
 
 # Ordered by preference; the first installed family wins so the same script
 # renders on Windows, macOS and Linux without edits.
@@ -30,6 +31,17 @@ PALETTE = {
     "positive": "#2b7a5c",
     "negative": "#c0563f",
     "text": "#2c3e50",
+    "1": "#3498db",
+    "2": "#fcbc44",
+    "3": "#9bd439",
+    "4": "#9b59b6",
+}
+
+PALETTE_CYCLE = {
+    0: PALETTE["1"],
+    1: PALETTE["2"],
+    2: PALETTE["3"],
+    3: PALETTE["4"],
 }
 
 

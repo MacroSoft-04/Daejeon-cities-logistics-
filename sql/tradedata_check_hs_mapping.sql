@@ -25,7 +25,7 @@
 
 -- 1) Chapters in the data with no section (should return 0 rows).
 SELECT DISTINCT t.류코드, t.품목명
-FROM tradedata_2000_2025_cleaned t
+FROM tradedata_2000_2025_2_cleaned t
 WHERE NOT EXISTS (
     SELECT 1 FROM codebook_hs_section m
     WHERE t.류코드 BETWEEN m.류_시작 AND m.류_끝
@@ -33,7 +33,7 @@ WHERE NOT EXISTS (
 
 -- 2) Chapters matched by more than one section, i.e. overlapping ranges (should return 0 rows).
 SELECT c.류코드, COUNT(*) AS 류코드_개수
-FROM (SELECT DISTINCT 류코드 FROM tradedata_2000_2025_cleaned) c
+FROM (SELECT DISTINCT 류코드 FROM tradedata_2000_2025_2_cleaned) c
 JOIN codebook_hs_section m
   ON c.류코드 BETWEEN m.류_시작 AND m.류_끝
 GROUP BY c.류코드

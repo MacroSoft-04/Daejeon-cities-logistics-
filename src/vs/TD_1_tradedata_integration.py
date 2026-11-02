@@ -7,7 +7,7 @@
     - https://tradedata.go.kr/cts/index.do
 * visualizaiton:
     - Grouped Bar Chart(Yearly Top 5 sections by sales volume)
-* Output: output/01_01_grouped_bar_chart.jpg
+* Output: output/TD_1_Daejeon_yearly_cat_value.png
 ====================================================================
 """
 
@@ -23,33 +23,31 @@ plt.rc("axes", unicode_minus=False)
 base_dir = Path(".")
 data_dir = base_dir / "data/processed"
 data_dir.mkdir(parents=True, exist_ok=True)
-save_dir = base_dir / "output"
+OUTPUT_DIR = base_dir / "output"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_PATH = OUTPUT_DIR / "TD_1_Daejeon_yearly_cat_value.png"
 
 # # load data
-file_path = data_dir / "tradedata_2000_2025_cleaned.csv"
+file_path = data_dir / "tradedata_2000_2025_4_added.csv"
 df = pd.read_csv(file_path)
 
-df_grouped = df.groupby(["year", "section_name"], as_index=False).agg(
-    {"export_usd": "sum", "import_usd": "sum"}
+df_grouped = df.groupby(["기간", "부명약칭"], as_index=False).agg(
+    {"수출금액": "sum", "수입금액": "sum"}
 )
 
-top5_ex_sections = (
-    df_grouped.groupby("section_name")["export_usd"].sum().nlargest(5).index
-)
-top5_im_sections = (
-    df_grouped.groupby("section_name")["import_usd"].sum().nlargest(5).index
-)
+top5_ex_sections = df_grouped.groupby("부명약칭")["수출금액"].sum().nlargest(5).index
+top5_im_sections = df_grouped.groupby("부명약칭")["수입금액"].sum().nlargest(5).index
 
-df_ex_top5 = df_grouped[df_grouped["section_name"].isin(top5_ex_sections)]
-df_im_top5 = df_grouped[df_grouped["section_name"].isin(top5_im_sections)]
+df_ex_top5 = df_grouped[df_grouped["부명약칭"].isin(top5_ex_sections)]
+df_im_top5 = df_grouped[df_grouped["부명약칭"].isin(top5_im_sections)]
 
 # Plot Grouped Bar Chart
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 sns.lineplot(
     data=df_ex_top5,
-    x="year",
-    y="export_usd",
-    hue="section_name",
+    x="기간",
+    y="수출금액",
+    hue="부명약칭",
     marker="o",
     linewidth=2.5,
     ax=ax1,
@@ -70,9 +68,9 @@ ax1.legend(title="품목군", bbox_to_anchor=(1.02, 1), loc="upper left")
 
 sns.lineplot(
     data=df_im_top5,
-    x="year",
-    y="import_usd",
-    hue="section_name",
+    x="기간",
+    y="수입금액",
+    hue="부명약칭",
     marker="o",
     linewidth=2.5,
     ax=ax2,
@@ -92,4 +90,4 @@ ax2.grid(True, linestyle="--", alpha=0.3, axis="y")
 ax2.legend(title="품목군", bbox_to_anchor=(1.02, 1), loc="upper left")
 
 plt.tight_layout()
-plt.savefig(save_dir / "01_grouped_bar_chart.jpg", dpi=300)
+plt.savefig(OUTPUT_PATH, dpi=300)
