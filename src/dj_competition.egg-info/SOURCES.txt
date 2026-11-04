@@ -13,7 +13,6 @@ src/vs/01_tradedata_integration.py
 src/vs/02_tradedata_trade_diverging.py
 src/vs/03_tradedata_detail.py
 src/vs/04_kita_daejeon_trade.py
-src/vs/05_kita_total_balance.py
 src/vs/06_kita_compare_trade.py
 src/vs/07_kita_compare_trade_absolute.py
 src/vs/09_industry_mix_vs_national.py
