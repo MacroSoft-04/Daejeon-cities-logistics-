@@ -167,12 +167,13 @@ def action(page):
             )
             print(f"CSV button HTML: {csv_btn.evaluate("el => el.outerHTML")}")
 
-            not_visible = []
+            failed_files = []
 
             if not csv_btn.is_visible():
                 print(
                     f"CSV button not visible for {region['시도명']} {year}. Skipping."
                 )
+                failed_files.append(f"{region['시도명']}_{year}")
                 continue
             try:
                 with page.expect_download(timeout=15000) as download_info:
@@ -185,9 +186,58 @@ def action(page):
             except Exception as e:
                 print(f"Download failed for {region['시도명']} {year}: {e}")
                 print(f"current page URL: {page.url}")
+                failed_files.append(f"{region['시도명']}_{year}")
+                continue
+    if failed_files:
+        print(f"\nFailed downloads for the following files: {failed_files}")
+    else:
+        print("\nAll downloads completed successfully.")
+
+
+def crawl_trade_data():
+    """Crawl trade data for all regions and years."""
+    html = get_html(url=url, headless=False, action_callback=action)
+    soup = BeautifulSoup(html, "html.parser")
+    print(soup.title)
+
+
+def validate_crawl_results():
+    """Validate downloaded CSV files and summarize successful downloads."""
+    successful_download = []
+
+    csv_files = list(SAVE_DIR.glob(f"tradedata_*.csv"))
+    if not csv_files:
+        print("No CSV files found in the save directory.")
+        return
+    for csv_file in csv_files:
+        try:
+            df = pd.read_csv(csv_file)
+            if df.empty:
+                print(f"Warning: {csv_file} is empty.")
                 continue
 
+            stem = csv_file.stem
+            region_name, year = stem.removeprefix("tradedata_").rsplit("_", 1)
+            year = int(year)
+            successful_download.append(
+                {"시도명": region_name, "연도": year, "file": csv_file}
+            )
+        except Exception as e:
+            print(f"Error loading {csv_file}: {e}")
+    if not successful_download:
+        print("No successful downloads found.")
+        return
 
-html = get_html(url=url, headless=False, action_callback=action)
+    successful_df = pd.DataFrame(successful_download)
+    ranges = (
+        successful_df.groupby("시도명")["연도"]
+        .agg(["min", "max", "count"])
+        .rename(columns={"min": "Start Year", "max": "End Year", "count": "Count"})
+    )
+    print("\nSummary of successful downloads:")
+    print(ranges.to_string())
+    return successful_df
 
-soup = BeautifulSoup(html, "html.parser")
+
+if __name__ == "__main__":
+    validate_crawl_results()

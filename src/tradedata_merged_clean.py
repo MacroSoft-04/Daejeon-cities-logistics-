@@ -38,6 +38,7 @@
 
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 base_dir = Path(".")
 data_dir = base_dir / "data/processed"
@@ -54,6 +55,13 @@ GRID_KEYS = ["지역", "기간", CODE_COL]
 VALUE_COLS = ["수출건수", "수출금액", "수입건수", "수입금액", "무역수지"]
 LABEL_COLS = ["품목명", "품목약칭_TRASS"]
 
+DEBUG = True
+
+
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
 
 def report_unclassified(df: pd.DataFrame) -> None:
     """Print the evidence behind the chapter 99 footnote.
@@ -63,36 +71,38 @@ def report_unclassified(df: pd.DataFrame) -> None:
     collapse in declaration counts — have to be reproducible from the data
     rather than taken on trust.
     """
-    print(f"\n--- HS chapter {UNCLASSIFIED}: unclassified goods ---")
+    debug_print(f"\n--- HS chapter {UNCLASSIFIED}: unclassified goods ---")
     chapter = df[df[CODE_COL] == UNCLASSIFIED]
     if chapter.empty:
-        print(f"No rows found for chapter {UNCLASSIFIED}")
+        debug_print(f"No rows found for chapter {UNCLASSIFIED}")
         return
     total_import = df["수입금액"].sum()
     share = (
         chapter["수입금액"].sum() / total_import * 100 if total_import else float("nan")
     )
-    print(
+    debug_print(
         f"수입금액: {chapter['수입금액'].sum():,.0f} of {total_import:,.0f} ({share:.4f}%)"
     )
-    print(f"수출금액 total: {chapter['수출금액'].sum():,.0f}")
-    print(f"Regions covered: {chapter['지역'].nunique()} of {df['지역'].nunique()}")
+    debug_print(f"수출금액 total: {chapter['수출금액'].sum():,.0f}")
+    debug_print(
+        f"Regions covered: {chapter['지역'].nunique()} of {df['지역'].nunique()}"
+    )
 
     by_year = chapter.groupby("기간")[VALUE_COLS].sum()
-    print("\nBy year:")
-    print(by_year.to_string())
+    debug_print("\nBy year:")
+    debug_print(by_year.to_string())
 
     # The footnote claims value stops but counts continue, so check the two
     # separately rather than assuming they move together.
     zero_value_years = by_year.index[by_year["수입금액"] == 0]
     if len(zero_value_years):
         expected = set(range(zero_value_years.min(), by_year.index.max() + 1))
-        print(
+        debug_print(
             f"\n수입금액 == 0 from {zero_value_years.min()} onward: "
             f"{set(zero_value_years) == expected}"
         )
         counts_after = by_year.loc[zero_value_years, "수입건수"]
-        print(
+        debug_print(
             f"수입건수 in those years: min {counts_after.min():,.0f}, "
             f"max {counts_after.max():,.0f}"
         )
@@ -141,13 +151,32 @@ def backfill_labels(grid: pd.DataFrame, name_col: str) -> pd.DataFrame:
     return grid
 
 
+def report_missing_labels(
+    df: pd.DataFrame, label_cols, code_col: str = CODE_COL
+) -> None:
+    """Report which chapters lack each label, not just how many rows are null."""
+    print("\n--- Labels ---")
+    for col in label_cols:
+        if col not in df.columns:
+            print(f"{col}: column not present")
+            continue
+
+        missing = df.loc[df[col].isna(), code_col]
+        if missing.empty:
+            print(f"{col}: complete")
+        else:
+            print(
+                f"{col}: {len(missing)} rows across chapters {sorted(missing.unique())}"
+            )
+
+
 def check_totals_preserved(merged: pd.DataFrame, grid: pd.DataFrame, tol=1e-6) -> None:
     """Yearly totals must be identical before and after grid completion.
 
     Filling adds rows but can never add value, so a difference means the
     reindex duplicated rows or a merge fanned out. tol absorbs float noise.
     """
-    print("\n--- Totals ---")
+    debug_print("\n--- Totals ---")
     value_cols = [c for c in VALUE_COLS if c in merged.columns]
     diff = (
         merged.groupby("기간")[value_cols].sum()
@@ -156,7 +185,7 @@ def check_totals_preserved(merged: pd.DataFrame, grid: pd.DataFrame, tol=1e-6) -
     bad = diff[diff.abs().gt(tol).any(axis=1)]
     if not bad.empty:
         raise AssertionError(f"Yearly totals changed during grid completion:\n{bad}")
-    print(f"Totals preserved across {len(diff)} years")
+    debug_print(f"Totals preserved across {len(diff)} years")
 
 
 def check_labels_match_source(
@@ -189,7 +218,7 @@ def check_labels_match_source(
             raise ValueError(
                 f"{col} assigned to chapters absent from the source: {invented}"
             )
-        print(f"{col}: {len(result)} chapters match the source")
+        debug_print(f"{col}: {len(result)} chapters match the source")
 
 
 def check_labels_consistent(df, label_cols, code_col: str = CODE_COL, label="") -> None:
@@ -200,26 +229,7 @@ def check_labels_consistent(df, label_cols, code_col: str = CODE_COL, label="") 
         raise ValueError(
             f"Chapters with more than one label in {label}:\n{inconsistent}"
         )
-    print(f"Labels consistent across {len(counts)} chapters in {label}")
-
-
-def report_missing_labels(
-    df: pd.DataFrame, label_cols, code_col: str = CODE_COL
-) -> None:
-    """Report which chapters lack each label, not just how many rows are null."""
-    print("\n--- Labels ---")
-    for col in label_cols:
-        if col not in df.columns:
-            print(f"{col}: column not present")
-            continue
-
-        missing = df.loc[df[col].isna(), code_col]
-        if missing.empty:
-            print(f"{col}: complete")
-        else:
-            print(
-                f"{col}: {len(missing)} rows across chapters {sorted(missing.unique())}"
-            )
+    debug_print(f"Labels consistent across {len(counts)} chapters in {label}")
 
 
 def move_after(df: pd.DataFrame, col: str, after: str) -> pd.DataFrame:
@@ -253,23 +263,44 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
             f"({' x '.join(map(str, dimensions))} = {product:,}, off by {product - len(reloaded):+,})"
         )  # + (missing rows), - (duplicates)
 
-    print(
+    debug_print(
         f"Reload OK: {dimensions[0]} regions x {dimensions[1]} years x "
         f"{dimensions[2]} chapters = {len(reloaded):,} rows"
     )
 
 
+def format_code_ranges(codes):
+    codes = sorted(set(map(int, codes)))
+
+    if not codes:
+        return " "
+
+    ranges = []
+    start = prev = codes[0]
+
+    for code in codes[1:]:
+        if code == prev + 1:
+            prev = code
+        else:
+            ranges.append(
+                f"{start:02d}" if start == prev else f"{start:02d}-{prev:02d}"
+            )
+            start = prev = code
+    ranges.append(f"{start:02d}" if start == prev else f"{start:02d}-{prev:02d}")
+    return ", ".join(ranges)
+
+
 def run(df: pd.DataFrame) -> pd.DataFrame:
     report_unclassified(df)
     cleaned = df[df[CODE_COL] != UNCLASSIFIED].copy()
-    print(f"\nDropped {len(df) - len(cleaned)} rows for chapter {UNCLASSIFIED}")
-    print(
+    debug_print(f"\nDropped {len(df) - len(cleaned)} rows for chapter {UNCLASSIFIED}")
+    debug_print(
         f"Chapters covered: {cleaned[CODE_COL].nunique()} of {df[CODE_COL].nunique()}"
     )
     describe_chapters(cleaned[CODE_COL])
 
     grid = complete_grid(cleaned)
-    print(f"Grid completion added {len(grid) - len(cleaned)} rows")
+    debug_print(f"Grid completion added {len(grid) - len(cleaned)} rows")
 
     for col_name in LABEL_COLS:
         grid = backfill_labels(grid, col_name)
@@ -284,24 +315,113 @@ def run(df: pd.DataFrame) -> pd.DataFrame:
     grid = move_after(grid, "품목약칭_TRASS", "품목명")
 
     print("\n--- Created rows ---")
-    created_rows = grid[grid["원자료없음"]]
-    print(f"{len(created_rows)} rows filled by the grid(원자료없음)")
-    print(created_rows[GRID_KEYS + VALUE_COLS].head(5).to_string())
 
-    real_zeros = grid[~grid["원자료없음"] & (grid[VALUE_COLS] == 0).any(axis=1)]
+    top_region = []
+
+    no_source = grid[grid["원자료없음"]]
+    created_region = no_source.groupby("지역").size().sort_values(ascending=False)
+
+    top_region = created_region.head(2).index.tolist()
+
+    print(f"{len(no_source):,} rows filled by the grid")
+    print(created_region.to_string())
+    print("\n<created row count for each 지역 and 기간>")
+    print(f"top region: {top_region}")
+    for region in top_region:
+        created = (
+            no_source[no_source["지역"] == region]
+            .groupby(["지역", "기간"])
+            .agg(**{"Count": ("류코드", "count")})
+            .sort_values("기간")
+        )
+
+        created = created[created["Count"] > 10]
+        print(created.to_string())
+
+    setting = grid[~grid["원자료없음"]]
+    count_zero = (setting["수출건수"] == 0).astype(int) + (
+        setting["수입건수"] == 0
+    ).astype(int)
+
+    real_zeros_1 = setting[(setting[VALUE_COLS] == 0).all(axis=1)]
+    real_zeros_2 = setting[(setting["수출건수"] == 0) ^ (setting["수출금액"] == 0)]
+    real_zeros_3 = setting[(setting["수입건수"] == 0) ^ (setting["수입금액"] == 0)]
+    real_zeros_4 = setting[
+        ((count_zero == 2) & (setting["무역수지"] == 1))
+        | ((count_zero != 2) & (setting["무역수지"] == 0))
+    ]
+
+    real_zeros = pd.concat(
+        [real_zeros_1, real_zeros_2, real_zeros_3, real_zeros_4]
+    ).drop_duplicates()
+    zeros = real_zeros.groupby("지역").size().sort_values(ascending=False)
     print(f"\n{len(real_zeros)} reported rows contain a zero(not 원자료없음)")
-    print(real_zeros[GRID_KEYS + VALUE_COLS].head(5).to_string())
+    print(zeros.to_string())
 
-    print("\n--- columns ---")
-    print(grid.columns.to_list())
+    debug_print("\n--- columns ---")
+    debug_print(grid.columns.to_list())
 
     grid = grid.sort_values(GRID_KEYS, ignore_index=True)
-    grid.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
     print(f"\nWrote {len(grid):,} rows to {CLEANED_PATH}")
-    check_roundtrip(CLEANED_PATH, grid)
     return grid
+
+
+NATIONAL = "전국"
+
+
+def add_national(grid: pd.DataFrame) -> pd.DataFrame:
+    """Add a row for 전국 for each year and chapter, summing the regions."""
+    national = (
+        grid.groupby(["기간", CODE_COL])[VALUE_COLS]
+        .sum()
+        .reset_index()
+        .assign(지역=NATIONAL)
+    )
+    for col in LABEL_COLS:
+        if col in grid.columns:
+            national[col] = national[CODE_COL].map(
+                grid.dropna(subset=[col])
+                .drop_duplicates(CODE_COL)
+                .set_index(CODE_COL)[col]
+            )
+    if "원자료없음" in grid.columns:
+        national["원자료없음"] = (
+            grid.groupby(["기간", CODE_COL])["원자료없음"].any().to_numpy()
+        )
+    return pd.concat([grid, national], ignore_index=True)
+
+
+def check_national(grid: pd.DataFrame) -> None:
+    """Verify that 전국 rows match the sum of the regions."""
+    national = grid[grid["지역"] == NATIONAL]
+    regional = grid[grid["지역"] != NATIONAL]
+
+    for year in national["기간"].unique():
+        for code in national[CODE_COL].unique():
+            national_row = national[
+                (national["기간"] == year) & (national[CODE_COL] == code)
+            ]
+            regional_rows = regional[
+                (regional["기간"] == year) & (regional[CODE_COL] == code)
+            ]
+            if not national_row.empty and not regional_rows.empty:
+                expected_sum = regional_rows[VALUE_COLS].sum()
+                actual_sum = national_row[VALUE_COLS].iloc[0]
+                if not np.allclose(
+                    expected_sum.to_numpy(), actual_sum.to_numpy(), rtol=1e-6, atol=1e-6
+                ):
+                    raise ValueError(
+                        f"Mismatch for {NATIONAL} in year {year}, code {code}: "
+                        f"expected {expected_sum.to_dict()}, got {actual_sum.to_dict()}"
+                    )
+    print(f"All {NATIONAL} rows match the sum of the regions.")
 
 
 if __name__ == "__main__":
     df = pd.read_csv(MERGED_PATH, dtype={SOURCE_CODE_COL: str}, encoding="utf-8-sig")
-    run(df.rename(columns={SOURCE_CODE_COL: CODE_COL}))
+    df = df.rename(columns={SOURCE_CODE_COL: CODE_COL})
+    cleaned = run(df)
+    cleaned = add_national(cleaned)
+    check_national(cleaned)
+    cleaned.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
+    check_roundtrip(CLEANED_PATH, cleaned)
