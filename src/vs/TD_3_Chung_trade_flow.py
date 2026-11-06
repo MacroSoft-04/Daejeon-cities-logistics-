@@ -18,73 +18,32 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 
 SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
-from core.utils_chart import PALETTE, save, use_korean_font
+from core.utils_chart import PALETTE, PALETTE_CYCLE, save, use_korean_font
+from TD_2_DJ_trade_flow import COLORS_BASIC
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
 
-EX_GROUPS = [
-    "기계 및 전기기기",
-    "플라스틱 및 고무 제품",
-    "펄프 및 종이 제품",
-    "기타",
-]
-
-IM_GROUPS = [
-    "광물성 생산품",
-    "기계 및 전기기기",
-    "비금속 및 그 제품",
-    "화학공업 제품",
-    "기타",
-]
-
-COLORS = {
-    "기계 및 전기기기": PALETTE["primary"],
-    "플라스틱 및 고무 제품": "#3498db",
-    "펄프 및 종이 제품": "#fcbc44",
-    "화학공업 제품": "#9bd439",
-    "광물성 생산품": PALETTE["accent"],
-    "비금속 및 그 제품": "#9b59b6",
-    "기타": PALETTE["muted"],
-}
-
 MILLION = 1_000  # source unit is thousand USD
 LABEL_MIN_SHARE = 0.15
+CHUNGCHUNG = ["충청남도(세종특별자치시 포함)", "충청북도"]
 
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역"] == "대전광역시"].copy()  # Filter for Daejeon
-ratio_col = {"수출금액": "수출비율", "수입금액": "수입비율"}
+df = df[df["지역"].isin(CHUNGCHUNG)].copy()
+
+DEBUG = True
 
 
-def sections(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Find the top commodity groups by sectional import/export value average."""
-    frame = df.copy()
-    amount_cols = list(ratio_col.keys())
-    ratio_cols = list(ratio_col.values())
-
-    group_totals = frame.groupby(["기간", "부명약칭"])[amount_cols].transform("sum")
-    year_totals = frame.groupby("기간")[amount_cols].transform("sum")
-    frame[list(ratio_col.values())] = (
-        group_totals.div(year_totals).mul(100).rename(columns=ratio_col)
-    )
-    filtered = frame[frame[ratio_cols].gt(10).any(axis=1)]
-
-    average = filtered.groupby("부명약칭")[ratio_cols].mean()
-
-    ex_rank = (
-        average[["수출비율"]].sort_values("수출비율", ascending=False).reset_index()
-    )
-
-    im_rank = (
-        average[["수입비율"]].sort_values("수입비율", ascending=False).reset_index()
-    )
-    return ex_rank, im_rank
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
 
 
 balance = df.groupby("기간")["무역수지"].sum() / MILLION
@@ -98,27 +57,62 @@ def balance_table() -> pd.DataFrame:
             "무역수지": balance.values,
         }
     )
-    print(f"\n무역수지 (백만 USD):")
-    return print(balance_table.to_string(index=False))
+    debug_print(f"\n무역수지 (백만 USD):")
+    debug_print(balance_table.to_string(index=False))
+    return balance_table
 
 
 def sections_check():
-    ex_rank, im_rank = sections(df)
-    print("Export Rank:")
-    print(ex_rank.to_string(index=False))
-    print("\nImport Rank:")
-    print(im_rank.to_string(index=False))
+    """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
+    frame = df[df["기간"].gt(2015)]
+    year = frame.groupby(["부명약칭", "기간"], as_index=False)[
+        ["수출비중", "수입비중"]
+    ].sum()
+    ex_ratio = year.groupby("부명약칭")["수출비중"].mean()
+    im_ratio = year.groupby("부명약칭")["수입비중"].mean()
+
+    debug_print("\nExport Rank(2016~2025):")
+    debug_print(ex_ratio.nlargest(5).to_string())
+    debug_print("\nImport Rank(2016~2025):")
+    debug_print(im_ratio.nlargest(5).to_string())
+
+    EX_GROUPS = ex_ratio.nlargest(4).index.tolist()
+    IM_GROUPS = im_ratio.nlargest(4).index.tolist()
+    return EX_GROUPS, IM_GROUPS
+
+
+def build_section_colors(sections):
+    colors = COLORS_BASIC.copy()
+    remaining = sorted(set(sections) - set(colors))
+    available_colors = list(PALETTE_CYCLE.values())
+
+    random.shuffle(available_colors)
+
+    for i, section in enumerate(remaining):
+        colors[section] = available_colors[i % len(available_colors)]
+    return colors
 
 
 def plot_trade_diverging():
     """Plot exports above the axis, imports below, stacked by commodity group,
     with the trade balance drawn on the same scale.
     """
+    EX_GROUPS, IM_GROUPS = sections_check()
     df["ex_group"] = df["부명약칭"].where(df["부명약칭"].isin(EX_GROUPS), "기타")
     df["im_group"] = df["부명약칭"].where(df["부명약칭"].isin(IM_GROUPS), "기타")
 
-    exports = df.groupby(["기간", "ex_group"])["수출금액"].sum().unstack()[EX_GROUPS]
-    imports = df.groupby(["기간", "im_group"])["수입금액"].sum().unstack()[IM_GROUPS]
+    exports = (
+        df.groupby(["기간", "ex_group"])["수출금액"]
+        .sum()
+        .unstack(fill_value=0)
+        .reindex(columns=EX_GROUPS + ["기타"], fill_value=0)
+    )
+    imports = (
+        df.groupby(["기간", "im_group"])["수입금액"]
+        .sum()
+        .unstack(fill_value=0)
+        .reindex(columns=IM_GROUPS + ["기타"], fill_value=0)
+    )
     balance = df.groupby("기간")["무역수지"].sum() / MILLION
 
     years = exports.index.tolist()
@@ -131,14 +125,18 @@ def plot_trade_diverging():
         2, 1, figsize=(12, 9), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    groups = EX_GROUPS + IM_GROUPS
+    groups = list(dict.fromkeys(EX_GROUPS + IM_GROUPS + ["기타"]))
+    COLORS = build_section_colors(groups)
     seen_labels = set()
 
-    for frame, groups, sign in ((exports, EX_GROUPS, 1), (imports, IM_GROUPS, -1)):
+    for frame, plot_groups, sign in (
+        (exports, EX_GROUPS + ["기타"], 1),
+        (imports, IM_GROUPS + ["기타"], -1),
+    ):
         totals = frame.sum(axis=1)
         bottom = np.zeros(len(years))
 
-        for section in groups:
+        for section in plot_groups:
             values = frame[section].to_numpy(dtype=float) / MILLION * sign
             label = section if section not in seen_labels else None
             seen_labels.add(section)
@@ -172,7 +170,7 @@ def plot_trade_diverging():
     # Values below the axis are import volumes, not negative amounts.
     ax.yaxis.set_major_formatter(lambda value, _: f"{abs(value):,.0f}")
     ax.set_title(
-        "대전 수출입 구조",
+        "충청도 수출입 구조(대전제외, 충청북도(세종포함), 충청남도)",
         fontsize=15,
         fontweight="bold",
         pad=16,
@@ -217,8 +215,9 @@ def plot_trade_diverging():
         fontsize=8,
         color="#7a848d",
     )
-    save(fig, "TD_2_Daejeon_trade_diverging.jpg")
+    save(fig, "TD_3_Chungchung_trade_diverging.jpg")
 
 
-sections_check()
-plot_trade_diverging()
+if __name__ == "__main__":
+    balance_table()
+    plot_trade_diverging()

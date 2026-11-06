@@ -31,10 +31,13 @@ PALETTE = {
     "positive": "#2b7a5c",
     "negative": "#c0563f",
     "text": "#2c3e50",
-    "1": "#3498db",
-    "2": "#fcbc44",
-    "3": "#9bd439",
-    "4": "#9b59b6",
+    "1": "#6F8FAF",
+    "2": "#40B5AD",
+    "3": "#9FE2BF",
+    "4": "#59a11e",
+    "5": "#008080",
+    "6": "#6d8bef",
+    "7": "#CCCCFF",
 }
 
 PALETTE_CYCLE = {
@@ -42,6 +45,9 @@ PALETTE_CYCLE = {
     1: PALETTE["2"],
     2: PALETTE["3"],
     3: PALETTE["4"],
+    4: PALETTE["5"],
+    5: PALETTE["6"],
+    6: PALETTE["7"],
 }
 
 

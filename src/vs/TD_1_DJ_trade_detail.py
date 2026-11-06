@@ -30,6 +30,7 @@ OUTPUT_PATH = OUTPUT_DIR / "TD_1_Daejeon_yearly_cat_value.png"
 # # load data
 file_path = data_dir / "tradedata_2000_2025_4_added.csv"
 df = pd.read_csv(file_path)
+df = df[df["지역"] == "대전광역시"]
 
 df_grouped = df.groupby(["기간", "부명약칭"], as_index=False).agg(
     {"수출금액": "sum", "수입금액": "sum"}

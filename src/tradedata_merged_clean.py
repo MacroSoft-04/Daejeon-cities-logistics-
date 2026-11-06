@@ -269,25 +269,35 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
     )
 
 
-def format_code_ranges(codes):
-    codes = sorted(set(map(int, codes)))
+def report_zero_patterns(grid: pd.DataFrame) -> None:
+    """관세청's regional series has no national row; the sum of all 17 시도 matches
+    KITA's 전국 to rounding, so it stands in for one."""
+    reported = grid[~grid["원자료없음"]]
+    patterns = {
+        "no_trade": (reported[VALUE_COLS] == 0).all(axis=1),
+        "export_rounded": (reported["수출건수"] > 0) & (reported["수출금액"] == 0),
+        "import_rounded": (reported["수입건수"] > 0) & (reported["수입금액"] == 0),
+        "export_no_count": (reported["수출건수"] == 0) & (reported["수출금액"] > 0),
+        "import_no_count": (reported["수입건수"] == 0) & (reported["수입금액"] > 0),
+        # 관세청 rounds each figure separately, so a gap of 1 천불 is rounding.
+        "balance_mismatch": (
+            reported["무역수지"] - (reported["수출금액"] - reported["수입금액"])
+        ).abs()
+        > 1,
+    }
+    summery = pd.DataFrame(
+        {name: mask.groupby(reported["지역"]).sum() for name, mask in patterns.items()}
+    )
 
-    if not codes:
-        return " "
-
-    ranges = []
-    start = prev = codes[0]
-
-    for code in codes[1:]:
-        if code == prev + 1:
-            prev = code
-        else:
-            ranges.append(
-                f"{start:02d}" if start == prev else f"{start:02d}-{prev:02d}"
-            )
-            start = prev = code
-    ranges.append(f"{start:02d}" if start == prev else f"{start:02d}-{prev:02d}")
-    return ", ".join(ranges)
+    print("\n--- Zero patterns in reported rows ---")
+    print(
+        summery.loc[summery.sum(axis=1).sort_values(ascending=False).index].to_string()
+    )
+    errors = ["export_no_count", "import_no_count", "balance_mismatch"]
+    suspicious = reported[pd.concat([patterns[e] for e in errors], axis=1).any(axis=1)]
+    if not suspicious.empty:
+        print(f"\n{len(suspicious)}rows need a look:")
+        print(suspicious[GRID_KEYS + VALUE_COLS].to_string())
 
 
 def run(df: pd.DataFrame) -> pd.DataFrame:
@@ -325,6 +335,8 @@ def run(df: pd.DataFrame) -> pd.DataFrame:
 
     print(f"{len(no_source):,} rows filled by the grid")
     print(created_region.to_string())
+    print(f"\n<check code 77>")
+    print(df[df[CODE_COL] == "77"][GRID_KEYS + VALUE_COLS].to_string())
     print("\n<created row count for each 지역 and 기간>")
     print(f"top region: {top_region}")
     for region in top_region:
@@ -338,25 +350,7 @@ def run(df: pd.DataFrame) -> pd.DataFrame:
         created = created[created["Count"] > 10]
         print(created.to_string())
 
-    setting = grid[~grid["원자료없음"]]
-    count_zero = (setting["수출건수"] == 0).astype(int) + (
-        setting["수입건수"] == 0
-    ).astype(int)
-
-    real_zeros_1 = setting[(setting[VALUE_COLS] == 0).all(axis=1)]
-    real_zeros_2 = setting[(setting["수출건수"] == 0) ^ (setting["수출금액"] == 0)]
-    real_zeros_3 = setting[(setting["수입건수"] == 0) ^ (setting["수입금액"] == 0)]
-    real_zeros_4 = setting[
-        ((count_zero == 2) & (setting["무역수지"] == 1))
-        | ((count_zero != 2) & (setting["무역수지"] == 0))
-    ]
-
-    real_zeros = pd.concat(
-        [real_zeros_1, real_zeros_2, real_zeros_3, real_zeros_4]
-    ).drop_duplicates()
-    zeros = real_zeros.groupby("지역").size().sort_values(ascending=False)
-    print(f"\n{len(real_zeros)} reported rows contain a zero(not 원자료없음)")
-    print(zeros.to_string())
+    report_zero_patterns(grid)
 
     debug_print("\n--- columns ---")
     debug_print(grid.columns.to_list())
