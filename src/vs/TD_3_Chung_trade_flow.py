@@ -23,8 +23,7 @@ import random
 SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
-from core.utils_chart import PALETTE, PALETTE_CYCLE, save, use_korean_font
-from TD_2_DJ_trade_flow import COLORS_BASIC
+from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
@@ -66,10 +65,10 @@ def sections_check():
     """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
     frame = df[df["기간"].gt(2015)]
     year = frame.groupby(["부명약칭", "기간"], as_index=False)[
-        ["수출비중", "수입비중"]
+        ["수출금액", "수입금액"]
     ].sum()
-    ex_ratio = year.groupby("부명약칭")["수출비중"].mean()
-    im_ratio = year.groupby("부명약칭")["수입비중"].mean()
+    ex_ratio = year.groupby("부명약칭")["수출금액"].mean()
+    im_ratio = year.groupby("부명약칭")["수입금액"].mean()
 
     debug_print("\nExport Rank(2016~2025):")
     debug_print(ex_ratio.nlargest(5).to_string())
@@ -81,16 +80,7 @@ def sections_check():
     return EX_GROUPS, IM_GROUPS
 
 
-def build_section_colors(sections):
-    colors = COLORS_BASIC.copy()
-    remaining = sorted(set(sections) - set(colors))
-    available_colors = list(PALETTE_CYCLE.values())
-
-    random.shuffle(available_colors)
-
-    for i, section in enumerate(remaining):
-        colors[section] = available_colors[i % len(available_colors)]
-    return colors
+COLORS_BASIC = TRADE_DATA
 
 
 def plot_trade_diverging():
@@ -125,8 +115,7 @@ def plot_trade_diverging():
         2, 1, figsize=(12, 9), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    groups = list(dict.fromkeys(EX_GROUPS + IM_GROUPS + ["기타"]))
-    COLORS = build_section_colors(groups)
+    COLORS = COLORS_BASIC.copy()
     seen_labels = set()
 
     for frame, plot_groups, sign in (

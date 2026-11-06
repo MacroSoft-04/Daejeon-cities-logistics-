@@ -23,7 +23,7 @@ import random
 SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
-from core.utils_chart import PALETTE, PALETTE_CYCLE, save, use_korean_font
+from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
@@ -46,23 +46,7 @@ def debug_print(*args, **kwargs):
 
 balance = df.groupby("기간")["무역수지"].sum() / MILLION
 
-COLORS_BASIC = {
-    "기계 및 전기기기": PALETTE["primary"],
-    "기타": PALETTE["muted"],
-}
-
-
-def build_section_colors(sections):
-    colors = COLORS_BASIC.copy()
-
-    remaining = sorted(set(sections) - set(colors))
-    available_colors = list(PALETTE_CYCLE.values())
-
-    random.shuffle(available_colors)
-
-    for i, section in enumerate(remaining):
-        colors[section] = available_colors[i % len(available_colors)]
-    return colors
+COLORS_BASIC = TRADE_DATA
 
 
 def balance_table() -> pd.DataFrame:
@@ -129,8 +113,7 @@ def plot_trade_diverging():
         2, 1, figsize=(12, 9), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    groups = list(dict.fromkeys(EX_GROUPS + IM_GROUPS + ["기타"]))
-    COLORS = build_section_colors(groups)
+    COLORS = COLORS_BASIC.copy()
     seen_labels = set()
 
     for frame, plot_groups, sign in (
@@ -168,12 +151,6 @@ def plot_trade_diverging():
                     color="#2c3e50" if section == "기타" else "white",
                 )
             bottom += values
-
-    print("\n--- Common sections ---")
-    print(f"{section}: " f"TD_2={COLORS[section]}")
-
-    print("\n--- Duplicate colors ---")
-    print(len(COLORS.values()), len(set(COLORS.values())))
 
     ax.axhline(0, color="#1c1c1c", linewidth=1.2)
     ax.set_ylabel("금액 (백만 USD)")

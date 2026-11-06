@@ -140,6 +140,40 @@ SQL 단계는 MySQL 문법이며 SQL 클라이언트에서 직접 실행한다.
 | HS 류 → 부 매핑 | 누락·중복 매핑 없음 |
 | 충남(세종 포함) vs 충남 + 세종 | 두 자료 모두 정확히 일치 |
 | CSV 재로딩 | 모든 출력을 다시 읽어 저장 전 데이터와 비교 |
+Half of the export-rounded rows have a single declaration, and three quarters have at most 2 (imports: median 2, 75% at 3). That’s what “a few tiny shipments rounded to 0 천불” looks like.
+---Rows with rounded trade amounts---
+
+count    606.000000
+mean       1.702970
+std        2.132214
+min        1.000000
+25%        1.000000
+50%        1.000000
+75%        2.000000
+max       25.000000
+Name: 수출건수, dtype: float64
+
+count    509.000000
+mean       3.117878
+std        4.358657
+min        1.000000
+25%        1.000000
+50%        2.000000
+75%        3.000000
+max       35.000000
+Name: 수입건수, dtype: float64
+
+---Top3 export counts
+
+            지역    기간 류코드  수출건수  수출금액
+11313    광주광역시  2012  66  25.0   0.0
+37502  제주특별자치도  2022  65  22.0   0.0
+14690    대구광역시  2021  46  18.0   0.0
+
+            지역    기간 류코드  수입건수  수입금액
+40345     충청남도  2025  50  35.0   0.0
+2418   강원특별자치도  2024  50  31.0   0.0
+27638    울산광역시  2024  50  31.0   0.0
 
 ### 관세청 vs K-stat 교차 검증
 

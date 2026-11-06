@@ -270,8 +270,8 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
 
 
 def report_zero_patterns(grid: pd.DataFrame) -> None:
-    """관세청's regional series has no national row; the sum of all 17 시도 matches
-    KITA's 전국 to rounding, so it stands in for one."""
+    """Flag zero and rounding patterns in reported rows before the 17 시도 are
+    summed into a national series; bad rows here would propagate into 전국."""
     reported = grid[~grid["원자료없음"]]
     patterns = {
         "no_trade": (reported[VALUE_COLS] == 0).all(axis=1),
@@ -285,19 +285,32 @@ def report_zero_patterns(grid: pd.DataFrame) -> None:
         ).abs()
         > 1,
     }
-    summery = pd.DataFrame(
+    summary = pd.DataFrame(
         {name: mask.groupby(reported["지역"]).sum() for name, mask in patterns.items()}
     )
 
     print("\n--- Zero patterns in reported rows ---")
     print(
-        summery.loc[summery.sum(axis=1).sort_values(ascending=False).index].to_string()
+        summary.loc[summary.sum(axis=1).sort_values(ascending=False).index].to_string()
     )
     errors = ["export_no_count", "import_no_count", "balance_mismatch"]
     suspicious = reported[pd.concat([patterns[e] for e in errors], axis=1).any(axis=1)]
     if not suspicious.empty:
         print(f"\n{len(suspicious)}rows need a look:")
         print(suspicious[GRID_KEYS + VALUE_COLS].to_string())
+    print("\n---Rows with rounded trade amounts---")
+    export_value = reported[patterns["export_rounded"]]
+    import_value = reported[patterns["import_rounded"]]
+
+    print(f"\n{export_value["수출건수"].describe()}")
+    print(f"\n{import_value["수입건수"].describe()}")
+    print("\n---Top3 import / export counts")
+    print(f"\n{export_value.nlargest(3, "수출건수")[
+            GRID_KEYS + ["수출건수", "수출금액"]
+        ].to_string()}")
+    print(f"\n{import_value.nlargest(3, "수입건수")[
+            GRID_KEYS + ["수입건수", "수입금액"]
+        ].to_string()}")
 
 
 def run(df: pd.DataFrame) -> pd.DataFrame:

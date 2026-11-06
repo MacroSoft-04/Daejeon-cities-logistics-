@@ -40,14 +40,16 @@ PALETTE = {
     "7": "#CCCCFF",
 }
 
-PALETTE_CYCLE = {
-    0: PALETTE["1"],
-    1: PALETTE["2"],
-    2: PALETTE["3"],
-    3: PALETTE["4"],
-    4: PALETTE["5"],
-    5: PALETTE["6"],
-    6: PALETTE["7"],
+TRADE_DATA = {
+    "기계 및 전기기기": PALETTE["primary"],
+    "수송기기": PALETTE["1"],
+    "광학, 정밀, 의료기기": PALETTE["2"],
+    "조제식품류": PALETTE["3"],
+    "화학공업 제품": PALETTE["4"],
+    "광물성 생산품": PALETTE["5"],
+    "플라스틱 및 고무 제품": PALETTE["6"],
+    "비금속 및 그 제품": PALETTE["7"],
+    "기타": PALETTE["muted"],
 }
 
 
