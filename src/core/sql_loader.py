@@ -18,7 +18,7 @@ def upload_csv_to_db(file_name: str, table_name: str = None):
     csv_path = base_dir / "data/processed" / file_name
 
     if not csv_path.exists():
-        print(f"❌ file not found: {csv_path}")
+        print(f"file not found: {csv_path}")
         return
 
     if not table_name:
@@ -40,4 +40,4 @@ if __name__ == "__main__":
         upload_csv_to_db(target_file)
     else:
         # if no argument is given, upload based on the file name
-        upload_csv_to_db("tradedata_2000_2025_cleaned.csv")
+        upload_csv_to_db("codebook_hs_section.csv")

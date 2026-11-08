@@ -36,7 +36,7 @@ SUM_COLUMNS = [
     "수입금액",
     "무역수지",
 ]
-SORT_KEYS = ["지역", YEAR, "류코드"]
+SORT_KEYS = ["지역명", YEAR, "류코드"]
 
 COMBINED_PARTS = ["충청남도", "세종특별자치시"]
 COMBINED = "충청남도(세종특별자치시 포함)"
@@ -46,9 +46,9 @@ def add_chungnam_with_sejong(df, sum_cols=SUM_COLUMNS, index=HS_KEYS):
     """세종 took 연기군 from 충남 in July 2012; adding it back keeps 충남's boundary
     roughly constant across 2012 (세종 also took small parts of 공주 and 충북 청원).
     Published columns are summed; derived ones are recomputed from the sums."""
-    parts = df[df["지역"].isin(COMBINED_PARTS)].copy()
+    parts = df[df["지역명"].isin(COMBINED_PARTS)].copy()
     combined = parts.groupby(index, as_index=False)[sum_cols].sum()
-    combined["지역"] = COMBINED
+    combined["지역명"] = COMBINED
     combined["수출비중"] = (
         combined["수출금액"]
         * 100
@@ -74,7 +74,7 @@ def check_combined(df, cols=SUM_COLUMNS, index=HS_KEYS):
     region = ["충청남도", "세종특별자치시", COMBINED]
     by_region = {
         r: (
-            df[df["지역"] == r]
+            df[df["지역명"] == r]
             .groupby(index, as_index=False)[cols]
             .sum()
             .set_index(index)
@@ -101,7 +101,7 @@ def check_combined(df, cols=SUM_COLUMNS, index=HS_KEYS):
 def check_sorted(df):
     """Lag features use shift(), which means 'previous row'; that's only the
     previous period if each region's rows run oldest to newest."""
-    ok = df.groupby("지역")[YEAR].apply(lambda s: s.is_monotonic_increasing)
+    ok = df.groupby("지역명")[YEAR].apply(lambda s: s.is_monotonic_increasing)
     if not ok.all():
         raise ValueError(f"not sorted by {YEAR} within: {sorted(ok[~ok].index)}")
     print(f"\nsorted by {YEAR} within all {len(ok)} regions")
@@ -117,7 +117,7 @@ def check_ratio_bounds(df, index):
     for col in RATIO_COLUMNS:
         ratio = pd.concat(
             {
-                r: df[df["지역"] == r].set_index(index)[col]
+                r: df[df["지역명"] == r].set_index(index)[col]
                 for r in ["충청남도", "세종특별자치시", COMBINED]
             },
             axis=1,
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     df = pd.read_csv(INPUT, encoding="utf-8-sig")
     added = add_chungnam_with_sejong(df).reset_index(drop=True)
 
-    rows = added[added["지역"] == COMBINED]
+    rows = added[added["지역명"] == COMBINED]
     if rows.empty:
         raise ValueError(f"no {COMBINED} rows were added")
     print("\n<check_combined>")

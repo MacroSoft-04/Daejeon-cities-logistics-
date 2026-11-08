@@ -39,6 +39,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
+from core.regions import SIDO_SHORT
 
 base_dir = Path(".")
 data_dir = base_dir / "data/processed"
@@ -262,6 +263,9 @@ def move_after(df: pd.DataFrame, col: str, after: str) -> pd.DataFrame:
     return df[cols[:index] + [col] + cols[index:]]
 
 
+NEW_GRID_KEYS = ["지역명", "기간", CODE_COL]
+
+
 def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
     """The CSV carries no dtypes, so verify what a reader actually gets."""
     reloaded = pd.read_csv(path, encoding="utf-8-sig", dtype={CODE_COL: str})
@@ -275,7 +279,7 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
     if (nulls := reloaded.isna().sum()).any():
         raise AssertionError(f"Nulls after reload:\n{nulls[nulls > 0]}")
 
-    dimensions = [reloaded[key].nunique() for key in GRID_KEYS]
+    dimensions = [reloaded[key].nunique() for key in NEW_GRID_KEYS]
     product = dimensions[0] * dimensions[1] * dimensions[2]
     if product != len(reloaded):
         raise AssertionError(
@@ -485,12 +489,27 @@ def check_national(grid: pd.DataFrame) -> None:
     print(f"All {NATIONAL} rows match the sum of the regions.")
 
 
+def add_short_region_names(region: pd.DataFrame) -> pd.DataFrame:
+    region.rename(columns={"지역": "지역명"}, inplace=True)
+
+    missing = set(region["지역명"].unique()) - set(SIDO_SHORT.keys())
+    miss_map = set(SIDO_SHORT.keys()) - set(region["지역명"].unique())
+    if missing:
+        raise ValueError("There is missing value in SIDO_SHORT")
+    if miss_map:
+        raise ValueError("some region are only in SIDO_SHORT")
+
+    region["지역명_축약"] = region["지역명"].map(SIDO_SHORT)
+    return region
+
+
 if __name__ == "__main__":
     df = pd.read_csv(MERGED_PATH, dtype={SOURCE_CODE_COL: str}, encoding="utf-8-sig")
     df = df.rename(columns={SOURCE_CODE_COL: CODE_COL})
     grid = run(df)
-    national = add_national(grid)
-    check_national(national)
-    national.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
+    region = add_national(grid)
+    check_national(region)
+    add_short_region_names(region)
+    region.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
     print(f"\nWrote {len(grid):,} rows to {CLEANED_PATH}")
-    check_roundtrip(CLEANED_PATH, national)
+    check_roundtrip(CLEANED_PATH, region)

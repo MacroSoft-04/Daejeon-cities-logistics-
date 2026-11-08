@@ -142,11 +142,12 @@ SQL 단계는 MySQL 문법이며 SQL 클라이언트에서 직접 실행한다.
 | CSV 재로딩 | 모든 출력을 다시 읽어 저장 전 데이터와 비교 |
 Half of the export-rounded rows have a single declaration, and three quarters have at most 2 (imports: median 2, 75% at 3). That’s what “a few tiny shipments rounded to 0 천불” looks like.
 
+```
           rounded rows  all rows with exports
 50%            1.00                 283.00
 75%            2.00               2,081.00
 max           25.00           5,235,746.00
-
+```
 
 ### 관세청 vs K-stat 교차 검증
 
