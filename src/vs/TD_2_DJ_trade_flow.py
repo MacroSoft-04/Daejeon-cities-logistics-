@@ -34,7 +34,7 @@ LABEL_MIN_SHARE = 0.15
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역"] == "대전광역시"].copy()  # Filter for Daejeon
+df = df[df["지역명"] == "대전광역시"].copy()  # Filter for Daejeon
 
 DEBUG = True
 
@@ -202,7 +202,7 @@ def plot_trade_diverging():
         fontsize=8,
         color="#7a848d",
     )
-    save(fig, "TD_2_Daejeon_trade_diverging.jpg")
+    save(fig, "TD_2_Daejeon_trade_diverging.png")
 
 
 if __name__ == "__main__":
