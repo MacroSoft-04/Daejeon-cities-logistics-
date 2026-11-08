@@ -46,7 +46,9 @@ base_dir.mkdir(parents=True, exist_ok=True)
 MERGED_PATH = data_dir / "tradedata_2000_2025_1_merged.csv"
 CLEANED_PATH = data_dir / "tradedata_2000_2025_2_cleaned.csv"
 
+RESERVED = "77"
 UNCLASSIFIED = "99"
+REMOVE = {RESERVED, UNCLASSIFIED}
 
 SOURCE_CODE_COL = "HS코드"
 CODE_COL = "류코드"
@@ -54,6 +56,8 @@ GRID_KEYS = ["지역", "기간", CODE_COL]
 
 VALUE_COLS = ["수출건수", "수출금액", "수입건수", "수입금액", "무역수지"]
 LABEL_COLS = ["품목명", "품목약칭_TRASS"]
+
+pd.options.display.float_format = "{:,.2f}".format
 
 DEBUG = True
 
@@ -117,6 +121,22 @@ def describe_chapters(codes) -> str:
     if absent:
         text += f"; absent: {', '.join(f'{c:02d}' for c in absent)}"
     return print(text)
+
+
+def check_removed_chapters(
+    before: pd.DataFrame, after: pd.DataFrame, code_col: str = CODE_COL
+) -> None:
+    before_codes = set(before[code_col].unique())
+    after_codes = set(after[code_col].unique())
+    removed = before_codes - after_codes
+    print("\n--- Removed chapters ---")
+    if remaining := REMOVE & after_codes:
+        raise ValueError(
+            f"Chapters that should have been removed remain: {sorted(remaining)}"
+        )
+    if unexpected := removed - REMOVE:
+        raise ValueError(f"Chapters removed by mistake: {sorted(unexpected)}")
+    print("Verified: chapters {soreted(REMOVE)} are absent")
 
 
 def complete_grid(merged: pd.DataFrame) -> pd.DataFrame:
@@ -269,6 +289,43 @@ def check_roundtrip(path: Path, expected: pd.DataFrame) -> None:
     )
 
 
+def created_rows(grid: pd.DataFrame) -> None:
+    """check created rows after running complete_grid"""
+    print("\n--- Created rows ---")
+
+    top_region = []
+
+    no_source = grid[grid["원자료없음"]]
+    created_region = no_source.groupby("지역").size().sort_values(ascending=False)
+
+    top_region = created_region.head(2).index.tolist()
+
+    created_cat = (
+        no_source.groupby(["류코드"])
+        .size()
+        .rename("Count")
+        .sort_values(ascending=False)
+    )
+
+    print(created_cat.head(20).to_string())
+    print(f"\n{len(no_source):,} rows filled by the grid")
+    print(f"\n{created_region.to_string()}")
+    print(f"\n<check code 77>")
+    print(df[df[CODE_COL] == "77"][GRID_KEYS + VALUE_COLS].to_string())
+    print("\n<created row count for each 지역 and 기간>")
+    print(f"top region: {top_region}")
+    for region in top_region:
+        created = (
+            no_source[no_source["지역"] == region]
+            .groupby(["지역", "기간"])
+            .agg(**{"Count": ("류코드", "count")})
+            .sort_values("기간")
+        )
+
+        created = created[created["Count"] > 10]
+        print(created.to_string())
+
+
 def report_zero_patterns(grid: pd.DataFrame) -> None:
     """Flag zero and rounding patterns in reported rows before the 17 시도 are
     summed into a national series; bad rows here would propagate into 전국."""
@@ -298,12 +355,45 @@ def report_zero_patterns(grid: pd.DataFrame) -> None:
     if not suspicious.empty:
         print(f"\n{len(suspicious)}rows need a look:")
         print(suspicious[GRID_KEYS + VALUE_COLS].to_string())
-    print("\n---Rows with rounded trade amounts---")
+
+    print("\n--- Chapters in rounded rows ---")
     export_value = reported[patterns["export_rounded"]]
     import_value = reported[patterns["import_rounded"]]
 
-    print(f"\n{export_value["수출건수"].describe()}")
-    print(f"\n{import_value["수입건수"].describe()}")
+    freq = (
+        pd.concat(
+            {
+                "export_rows": export_value[CODE_COL].value_counts(),
+                "import_rows": import_value[CODE_COL].value_counts(),
+            },
+            axis=1,
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+    freq["total"] = freq.sum(axis=1)
+    print(f"\n{freq.sort_values("total", ascending= False).head(10).to_string()}")
+
+    print("\n---Rows with rounded trade amounts---")
+    print(f"\n{pd.DataFrame(
+            {
+                "rounded rows": export_value["수출건수"].describe(),
+                "all rows with exports": reported.loc[
+                    reported["수출건수"] > 0, "수출건수"
+                ].describe(),
+            }
+        )}")
+
+    print(f"\n{pd.DataFrame(
+                {
+                    "rounded rows": import_value["수입건수"].describe(),
+                    "all rows with exports": reported.loc[
+                        reported["수입건수"] > 0, "수입건수"
+                    ].describe(),
+                }
+            )}")
+
     print("\n---Top3 import / export counts")
     print(f"\n{export_value.nlargest(3, "수출건수")[
             GRID_KEYS + ["수출건수", "수출금액"]
@@ -315,61 +405,25 @@ def report_zero_patterns(grid: pd.DataFrame) -> None:
 
 def run(df: pd.DataFrame) -> pd.DataFrame:
     report_unclassified(df)
-    cleaned = df[df[CODE_COL] != UNCLASSIFIED].copy()
-    debug_print(f"\nDropped {len(df) - len(cleaned)} rows for chapter {UNCLASSIFIED}")
-    debug_print(
-        f"Chapters covered: {cleaned[CODE_COL].nunique()} of {df[CODE_COL].nunique()}"
-    )
-    describe_chapters(cleaned[CODE_COL])
 
+    cleaned = df[~df[CODE_COL].isin(REMOVE)].copy()
+    check_removed_chapters(df, cleaned)
+    describe_chapters(cleaned[CODE_COL])
     grid = complete_grid(cleaned)
     debug_print(f"Grid completion added {len(grid) - len(cleaned)} rows")
 
     for col_name in LABEL_COLS:
         grid = backfill_labels(grid, col_name)
-
     check_totals_preserved(cleaned, grid)
-
     report_missing_labels(grid, LABEL_COLS)
     check_labels_match_source(cleaned, grid, LABEL_COLS)
-    check_labels_consistent(cleaned, LABEL_COLS, label="cleaned")
+    check_labels_consistent(df, LABEL_COLS, label="df")
     check_labels_consistent(grid, LABEL_COLS, label="grid")
 
     grid = move_after(grid, "품목약칭_TRASS", "품목명")
-
-    print("\n--- Created rows ---")
-
-    top_region = []
-
-    no_source = grid[grid["원자료없음"]]
-    created_region = no_source.groupby("지역").size().sort_values(ascending=False)
-
-    top_region = created_region.head(2).index.tolist()
-
-    print(f"{len(no_source):,} rows filled by the grid")
-    print(created_region.to_string())
-    print(f"\n<check code 77>")
-    print(df[df[CODE_COL] == "77"][GRID_KEYS + VALUE_COLS].to_string())
-    print("\n<created row count for each 지역 and 기간>")
-    print(f"top region: {top_region}")
-    for region in top_region:
-        created = (
-            no_source[no_source["지역"] == region]
-            .groupby(["지역", "기간"])
-            .agg(**{"Count": ("류코드", "count")})
-            .sort_values("기간")
-        )
-
-        created = created[created["Count"] > 10]
-        print(created.to_string())
-
+    created_rows(grid)
     report_zero_patterns(grid)
-
-    debug_print("\n--- columns ---")
-    debug_print(grid.columns.to_list())
-
     grid = grid.sort_values(GRID_KEYS, ignore_index=True)
-    print(f"\nWrote {len(grid):,} rows to {CLEANED_PATH}")
     return grid
 
 
@@ -393,7 +447,7 @@ def add_national(grid: pd.DataFrame) -> pd.DataFrame:
             )
     if "원자료없음" in grid.columns:
         national["원자료없음"] = (
-            grid.groupby(["기간", CODE_COL])["원자료없음"].any().to_numpy()
+            grid.groupby(["기간", CODE_COL])["원자료없음"].all().to_numpy()
         )
     return pd.concat([grid, national], ignore_index=True)
 
@@ -421,14 +475,22 @@ def check_national(grid: pd.DataFrame) -> None:
                         f"Mismatch for {NATIONAL} in year {year}, code {code}: "
                         f"expected {expected_sum.to_dict()}, got {actual_sum.to_dict()}"
                     )
+            expected_missing = regional_rows["원자료없음"].all()
+            actual_missing = national_row["원자료없음"].iloc[0]
+            if actual_missing != expected_missing:
+                raise ValueError(
+                    f"Mismatch in 원자료없음 for year {year}, code{code}: "
+                    f"expected {expected_missing}, got {actual_missing}"
+                )
     print(f"All {NATIONAL} rows match the sum of the regions.")
 
 
 if __name__ == "__main__":
     df = pd.read_csv(MERGED_PATH, dtype={SOURCE_CODE_COL: str}, encoding="utf-8-sig")
     df = df.rename(columns={SOURCE_CODE_COL: CODE_COL})
-    cleaned = run(df)
-    cleaned = add_national(cleaned)
-    check_national(cleaned)
-    cleaned.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
-    check_roundtrip(CLEANED_PATH, cleaned)
+    grid = run(df)
+    national = add_national(grid)
+    check_national(national)
+    national.to_csv(CLEANED_PATH, index=False, encoding="utf-8-sig")
+    print(f"\nWrote {len(grid):,} rows to {CLEANED_PATH}")
+    check_roundtrip(CLEANED_PATH, national)

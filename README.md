@@ -41,7 +41,7 @@
 | KOSIS 전국사업체조사, 광업제조업조사 | 산업별 사업체수, 종사자수, 매출액 | 2021 ~ 2024 | 배경: 대전 산업 구조 |
 
 시도 단위 **중량**을 공개하는 곳은 K-stat뿐이고, **HS 품목 구성**은 관세청 자료에만 있다. 두 자료를 함께 쓰는 이유이며, 두 자료의 합계가 일치하는지 교차 검증했다([검증](#검증) 참고).
-
+- HS 77류는 국제 HS 품목표상 유보(reserved) 류로 해당 품목이 존재하지 않는다. 원자료에 1건(서울 2004년 수출 1건, 4천 달러)이 있으나 분류 오류로 보고 99류와 함께 제외했다(병합 파일에는 원자료 그대로 보존).
 **분석 기간은 2000~2025년이다.** K-stat은 2026년 8월까지 받았지만 2026년은 모든 지역에서 부분 연도이므로 연간·계절 분석에서 제외한다.
 
 단위: K-stat 원자료는 천불·kg, 정제 파일은 백만불·천톤(컬럼명에 단위 표기). 관세청 금액은 천불. 단가(USD/kg)는 단위 변환 전 원자료 단위로 계산했다.
@@ -141,39 +141,12 @@ SQL 단계는 MySQL 문법이며 SQL 클라이언트에서 직접 실행한다.
 | 충남(세종 포함) vs 충남 + 세종 | 두 자료 모두 정확히 일치 |
 | CSV 재로딩 | 모든 출력을 다시 읽어 저장 전 데이터와 비교 |
 Half of the export-rounded rows have a single declaration, and three quarters have at most 2 (imports: median 2, 75% at 3). That’s what “a few tiny shipments rounded to 0 천불” looks like.
----Rows with rounded trade amounts---
 
-count    606.000000
-mean       1.702970
-std        2.132214
-min        1.000000
-25%        1.000000
-50%        1.000000
-75%        2.000000
-max       25.000000
-Name: 수출건수, dtype: float64
+          rounded rows  all rows with exports
+50%            1.00                 283.00
+75%            2.00               2,081.00
+max           25.00           5,235,746.00
 
-count    509.000000
-mean       3.117878
-std        4.358657
-min        1.000000
-25%        1.000000
-50%        2.000000
-75%        3.000000
-max       35.000000
-Name: 수입건수, dtype: float64
-
----Top3 export counts
-
-            지역    기간 류코드  수출건수  수출금액
-11313    광주광역시  2012  66  25.0   0.0
-37502  제주특별자치도  2022  65  22.0   0.0
-14690    대구광역시  2021  46  18.0   0.0
-
-            지역    기간 류코드  수입건수  수입금액
-40345     충청남도  2025  50  35.0   0.0
-2418   강원특별자치도  2024  50  31.0   0.0
-27638    울산광역시  2024  50  31.0   0.0
 
 ### 관세청 vs K-stat 교차 검증
 
@@ -230,3 +203,8 @@ src/
   vs/            차트 스크립트
   *.py           파이프라인 단계
 ```
+
+Two small gaps worth noting from the KITA comparison:
+
+Imports 2022–2025: about −0.02% every year (roughly 130 백만불), while earlier years are near 0. Chapter 99 can’t explain it, because its import value is 0 from 2022. KITA has a "기타" region in its region list; checking whether its imports start around 2022 is the first thing to try.
+Exports 2025: −0.15%, much larger than any other year. The likely reason is that 2025 figures were revised between your two downloads (KITA was downloaded Sep 29, the tradedata recrawl came later). Comparing the download dates, or re-downloading KITA’s 2025 전국, would settle it.
