@@ -64,6 +64,12 @@ TRADE_DATA_SECTION = {
     "기타": PALETTE["muted"],
 }
 
+# core/trade_combine.py
+import pandas as pd
+
+HS_KEYS = ["기간", "부코드", "부명약칭", "류코드", "류명약칭"]
+SUM_COLUMNS = ["수출건수", "수출금액", "수입건수", "수입금액", "무역수지"]
+
 
 def use_korean_font() -> str:
     available = {f.name for f in font_manager.fontManager.ttflist}
