@@ -64,6 +64,29 @@ TRADE_DATA_SECTION = {
     "기타": PALETTE["muted"],
 }
 
+TD_TRANSPORT = {
+    "자동차": PALETTE["primary"],
+    "항공기": PALETTE["1"],
+    "철도차량": PALETTE["2"],
+    "선박": PALETTE["3"],
+    "기타": PALETTE["muted"],
+}
+
+PREP_FOOD = {
+    "담배": PALETTE["primary"],
+    "채소_과실의_조제품": PALETTE["1"],
+    "각종의_조제식료품": PALETTE["2"],
+    "곡물_곡분의_조제품": PALETTE["3"],
+    "음료_알콜식초": PALETTE["4"],
+    "사료 ": PALETTE["5"],
+}
+
+MEDIC_DEVICE = {
+    "광학_정밀의료기기": PALETTE["primary"],
+    "시계": PALETTE["1"],
+    "악기": PALETTE["2"],
+}
+
 # core/trade_combine.py
 import pandas as pd
 

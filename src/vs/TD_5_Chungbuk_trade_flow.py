@@ -159,7 +159,7 @@ def plot_trade_diverging():
     # Values below the axis are import volumes, not negative amounts.
     ax.yaxis.set_major_formatter(lambda value, _: f"{abs(value):,.0f}")
     ax.set_title(
-        "전국 수출입 구조",
+        "충청북도(세종포함) 수출입 구조",
         fontsize=15,
         fontweight="bold",
         pad=16,

@@ -212,3 +212,5 @@ Imports 2022–2025: about −0.02% every year (roughly 130 백만불), while ea
 Exports 2025: −0.15%, much larger than any other year. The likely reason is that 2025 figures were revised between your two downloads (KITA was downloaded Sep 29, the tradedata recrawl came later). Comparing the download dates, or re-downloading KITA’s 2025 전국, would settle it.
 
 2000~2007까지는 전국 수출입구조와 다르게 무역 적자를 기록했으나 2007년 이후 전국 수출입구조에서 적자를 기록했을때 대전시는 흑자를 기록하거나 전국보다 적자율이 적었다. 기계 및 전기기기의 수입 및 수출 비중이 전국 평균보다 많은 편이었지만 충청도에 비해서는 수출율이 낮았다. 눈에 띄는 점은 광학 정밀 의료기기 + 조제식품류의 수입률이 전국이나 충청대비 높았다는 것이다. 다른 곳은 비율이 적어 기타로 빠진 반면 대전은 top4에 들었음 반면 광물성 생산품의 수입률은 전국/충청대비 top4에 들지 않음
+2019년에 수송기기 수출이 전년에 비해 증가했음에도 불구하고 자동차 수출이 100%였음
+항공기 수출이 전국 대비 많은 비율을 차지하는데 전국대비 많은 무기 화학품 수입 / 기계류 수출과 연관이 있지 않을까 그렇다면 군사적인 것과 관련이 있을까. 항공기 수출에 있어 년도별 변동성이 큼. 2013년도에 철도 차량을 많이 수입한 것으로 보아 도시의 확대? 와 관련이 있지 않을까. 광학 정밀 의료기기의 수입률이 높다는 것은 노인인구비율이 높거나 큰 병원이 있을 가능성이 있어보임
