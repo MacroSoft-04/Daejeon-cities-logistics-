@@ -52,6 +52,18 @@ TRADE_DATA = {
     "기타": PALETTE["muted"],
 }
 
+TRADE_DATA_SECTION = {
+    "전기기기": PALETTE["primary"],
+    "기계류": PALETTE["1"],
+    "각종_화학공업생산품": PALETTE["2"],
+    "향료_화장품": PALETTE["3"],
+    "유기화학품": PALETTE["4"],
+    "무기화학품": PALETTE["5"],
+    "각종_화학공업생산품": PALETTE["6"],
+    "의료용품": PALETTE["7"],
+    "기타": PALETTE["muted"],
+}
+
 
 def use_korean_font() -> str:
     available = {f.name for f in font_manager.fontManager.ttflist}

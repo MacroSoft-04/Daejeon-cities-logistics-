@@ -35,7 +35,7 @@ CHUNGCHUNG = ["충청남도(세종특별자치시 포함)", "충청북도"]
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역"].isin(CHUNGCHUNG)].copy()
+df = df[df["지역명"].isin(CHUNGCHUNG)].copy()
 
 DEBUG = True
 

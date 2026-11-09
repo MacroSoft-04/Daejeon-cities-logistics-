@@ -140,6 +140,7 @@ SQL 단계는 MySQL 문법이며 SQL 클라이언트에서 직접 실행한다.
 | HS 류 → 부 매핑 | 누락·중복 매핑 없음 |
 | 충남(세종 포함) vs 충남 + 세종 | 두 자료 모두 정확히 일치 |
 | CSV 재로딩 | 모든 출력을 다시 읽어 저장 전 데이터와 비교 |
+
 Half of the export-rounded rows have a single declaration, and three quarters have at most 2 (imports: median 2, 75% at 3). That’s what “a few tiny shipments rounded to 0 천불” looks like.
 
 ```
@@ -209,3 +210,5 @@ Two small gaps worth noting from the KITA comparison:
 
 Imports 2022–2025: about −0.02% every year (roughly 130 백만불), while earlier years are near 0. Chapter 99 can’t explain it, because its import value is 0 from 2022. KITA has a "기타" region in its region list; checking whether its imports start around 2022 is the first thing to try.
 Exports 2025: −0.15%, much larger than any other year. The likely reason is that 2025 figures were revised between your two downloads (KITA was downloaded Sep 29, the tradedata recrawl came later). Comparing the download dates, or re-downloading KITA’s 2025 전국, would settle it.
+
+2000~2007까지는 전국 수출입구조와 다르게 무역 적자를 기록했으나 2007년 이후 전국 수출입구조에서 적자를 기록했을때 대전시는 흑자를 기록하거나 전국보다 적자율이 적었다. 기계 및 전기기기의 수입 및 수출 비중이 전국 평균보다 많은 편이었지만 충청도에 비해서는 수출율이 낮았다. 눈에 띄는 점은 광학 정밀 의료기기 + 조제식품류의 수입률이 전국이나 충청대비 높았다는 것이다. 다른 곳은 비율이 적어 기타로 빠진 반면 대전은 top4에 들었음 반면 광물성 생산품의 수입률은 전국/충청대비 top4에 들지 않음

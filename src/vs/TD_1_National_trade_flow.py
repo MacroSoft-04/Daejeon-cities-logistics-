@@ -30,11 +30,12 @@ FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
 
 MILLION = 1_000  # source unit is thousand USD
 LABEL_MIN_SHARE = 0.15
+NATIONAL = "전국"
 
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역명"] == "전국"].copy()  # Filter for Daejeon
+df = df[df["지역명"] == NATIONAL].copy()
 
 DEBUG = True
 
@@ -45,8 +46,6 @@ def debug_print(*args, **kwargs):
 
 
 balance = df.groupby("기간")["무역수지"].sum() / MILLION
-
-COLORS_BASIC = TRADE_DATA
 
 
 def balance_table() -> pd.DataFrame:
@@ -66,10 +65,10 @@ def sections_check():
     """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
     frame = df[df["기간"].gt(2015)]
     year = frame.groupby(["부명약칭", "기간"], as_index=False)[
-        ["수출비중", "수입비중"]
+        ["수출금액", "수입금액"]
     ].sum()
-    ex_ratio = year.groupby("부명약칭")["수출비중"].mean()
-    im_ratio = year.groupby("부명약칭")["수입비중"].mean()
+    ex_ratio = year.groupby("부명약칭")["수출금액"].mean()
+    im_ratio = year.groupby("부명약칭")["수입금액"].mean()
 
     debug_print("\nExport Rank(2016~2025):")
     debug_print(ex_ratio.nlargest(5).to_string())
@@ -79,6 +78,9 @@ def sections_check():
     EX_GROUPS = ex_ratio.nlargest(4).index.tolist()
     IM_GROUPS = im_ratio.nlargest(4).index.tolist()
     return EX_GROUPS, IM_GROUPS
+
+
+COLORS_BASIC = TRADE_DATA
 
 
 def plot_trade_diverging():
