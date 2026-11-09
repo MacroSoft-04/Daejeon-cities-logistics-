@@ -113,7 +113,7 @@ def plot_regions():
         colors = COLORS_BASIC[section]
         EX_GROUPS = rankings[section]["export"]
         IM_GROUPS = rankings[section]["import"]
-        frame = df.copy()
+        frame = df[df["부명약칭"].eq(section)].copy()
         frame["ex_group"] = frame["류명약칭"].where(frame["류명약칭"].isin(EX_GROUPS))
         frame["im_group"] = frame["류명약칭"].where(frame["류명약칭"].isin(IM_GROUPS))
 
