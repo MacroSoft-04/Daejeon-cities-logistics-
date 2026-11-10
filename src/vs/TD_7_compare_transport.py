@@ -163,10 +163,20 @@ def plot_regions():
         ax.axhline(0, color="#1c1c1c", linewidth=1)
         ax.yaxis.set_major_formatter(lambda v, _: f"{abs(v):.0f}%")
         ax.set_title(region, loc="left", fontsize=10, fontweight="bold")
+        flow_label = dict(
+            transform=ax.get_yaxis_transform(),
+            ha="left",
+            va="center",
+            fontsize=11,
+            fontweight="bold",
+            color="#2c3e50",
+        )
+        ax.text(1.01, 50, "수출 ▲", **flow_label)
+        ax.text(1.01, -50, "수입 ▼", **flow_label)
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=COLORS_BASIC[g]) for g in all_groups]
     fig.suptitle(
-        f"지역별 기계·전기·화학 부문 수출입 품목 구성"
+        f"대전, 전국 수송기기 부문 수출입 품목 구성"
         f"{df['기간'].min()}~{df['기간'].max()}",
         y=0.99,
         fontsize=15,

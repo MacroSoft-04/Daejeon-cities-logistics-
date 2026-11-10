@@ -150,7 +150,6 @@ def plot_regions():
                     linewidth=0.8,
                     label=label,
                 )
-                ax.grid(True, axis="y", linestyle="--", alpha=0.35)
                 for year, value, base, share in zip(
                     table.index, values, bottom, table[group]
                 ):
@@ -168,7 +167,18 @@ def plot_regions():
                 bottom += values
         ax.axhline(0, color="#1c1c1c", linewidth=1)
         ax.yaxis.set_major_formatter(lambda v, _: f"{abs(v):.0f}%")
+        ax.grid(True, axis="y", linestyle="--", alpha=0.35)
         ax.set_title(region, loc="left", fontsize=10, fontweight="bold")
+        flow_label = dict(
+            transform=ax.get_yaxis_transform(),
+            ha="left",
+            va="center",
+            fontsize=11,
+            fontweight="bold",
+            color="#2c3e50",
+        )
+        ax.text(1.01, 50, "수출 ▲", **flow_label)
+        ax.text(1.01, -50, "수입 ▼", **flow_label)
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=COLORS_BASIC[g]) for g in all_groups]
     fig.suptitle(

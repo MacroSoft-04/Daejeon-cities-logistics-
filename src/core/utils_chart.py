@@ -78,13 +78,20 @@ PREP_FOOD = {
     "각종의_조제식료품": PALETTE["2"],
     "곡물_곡분의_조제품": PALETTE["3"],
     "음료_알콜식초": PALETTE["4"],
-    "사료 ": PALETTE["5"],
+    "사료": PALETTE["5"],
 }
 
 MEDIC_DEVICE = {
     "광학_정밀의료기기": PALETTE["primary"],
     "시계": PALETTE["1"],
     "악기": PALETTE["2"],
+}
+
+DEVICE_FOOD = {
+    "담배": PALETTE["1"],
+    "사료": PALETTE["2"],
+    "광학_정밀의료기기": PALETTE["4"],
+    "기타": PALETTE["muted"],
 }
 
 # core/trade_combine.py
