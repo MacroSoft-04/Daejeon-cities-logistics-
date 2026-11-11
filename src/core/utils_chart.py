@@ -38,6 +38,9 @@ PALETTE = {
     "5": "#008080",
     "6": "#6d8bef",
     "7": "#CCCCFF",
+    "8": "#6495ED",
+    "9": "#87CEEB",
+    "10": "#7DF9FF",
 }
 
 TRADE_DATA = {
@@ -49,6 +52,9 @@ TRADE_DATA = {
     "광물성 생산품": PALETTE["5"],
     "플라스틱 및 고무 제품": PALETTE["6"],
     "비금속 및 그 제품": PALETTE["7"],
+    "잡품(가구, 장난감 등)": PALETTE["8"],
+    "펄프 및 종이 제품": PALETTE["9"],
+    "식물성 생산품": PALETTE["10"],
     "기타": PALETTE["muted"],
 }
 

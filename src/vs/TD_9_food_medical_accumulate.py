@@ -102,8 +102,6 @@ def plot_regions():
     )
     left = np.zeros(len(table))
     y_positions = np.arange(len(table))
-    print(table)
-    print(list(table.index))
     for group in table.columns:
         values = table[group].to_numpy()
         ax.barh(
