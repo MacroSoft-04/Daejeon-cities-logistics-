@@ -12,13 +12,19 @@
 ====================================================================
 """
 
+import sys
+from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
+SRC_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = SRC_DIR.parent
+sys.path.insert(0, str(SRC_DIR))
 from core.utils_chart import PALETTE, save, use_korean_font
-from core.utils_validate_data import PROJECT_ROOT
 
-SRC = PROJECT_ROOT / "data/processed/kosis_estab_survey.csv"
+data_dir = BASE_DIR / "data" / "processed"
+FILE_PATH = data_dir / "kosis_estab_survey.csv"
+
 REGION = "대전"
 NATIONAL = "전국"
 METRIC = "매출액"
@@ -27,7 +33,7 @@ MIN_GAP = 1.0  # percentage points; below this the difference is not the story
 
 use_korean_font()
 
-df = pd.read_csv(SRC)
+df = pd.read_csv(FILE_PATH)
 years = sorted(int(y) for y in df["연도"].unique())
 
 revenue = df[df["지표"] == METRIC].pivot_table(
@@ -66,7 +72,7 @@ for bar, industry in zip(bars, gap.index):
 ax.axvline(0, color="#7a848d", linewidth=1)
 ax.set_xlabel(f"전국 대비 매출액 비중 차이 (%p, {years[0]}~{years[-1]} 평균)")
 ax.set_title(
-    "대전은 제조 도시가 아니다",
+    f"대전광역시 산업별 매출액 비중의 전국 대비 차이 ({years[0]}~{years[-1]} 평균)",
     fontsize=15,
     fontweight="bold",
     pad=14,

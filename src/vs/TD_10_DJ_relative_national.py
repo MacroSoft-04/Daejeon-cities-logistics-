@@ -18,12 +18,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.ticker import FixedLocator
 
 SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
-from core.utils_chart import TRADE_DATA, PALETTE, save, use_korean_font
+from core.utils_chart import TRADE_DATA, save, use_korean_font
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
@@ -168,7 +167,7 @@ def plot_profile():
         )
 
     fig.suptitle(
-        f"대전광역시 조제식품류·광학·정밀·의료기기 수출입 류별 구성 ({start}~{df['기간'].max()} 누적)",
+        f"대전광역시 류별 수출입의 지역 내 비중과 전국 대비 비중 ({start}~{df['기간'].max()} 누적)",
         fontsize=14,
         fontweight="bold",
     )
