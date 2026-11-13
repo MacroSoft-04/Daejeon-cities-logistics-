@@ -24,19 +24,21 @@ SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
 from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
+from core.utils_trade_balance import period_table, yearly_balance, MILLION
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
 SAVE = "TD_4_Chungnam_trade_diverging.png"
 
-MILLION = 1_000  # source unit is thousand USD
 LABEL_MIN_SHARE = 0.15
-CHN = "충청남도(세종특별자치시 포함)"
+
+FOCUS = "충청남도(세종특별자치시 포함)"
+REGIONS = FOCUS, "전국"
 
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역명"] == CHN].copy()
+df = df[df["지역명"] == FOCUS].copy()
 
 DEBUG = True
 
@@ -64,17 +66,23 @@ def balance_table() -> pd.DataFrame:
 
 def sections_check():
     """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
-    frame = df[df["기간"].gt(2015)]
+    start = df["기간"].max() - 9
+    frame = df[df["기간"].gt(start)]
     year = frame.groupby(["부명약칭", "기간"], as_index=False)[
         ["수출금액", "수입금액"]
     ].sum()
-    ex_ratio = year.groupby("부명약칭")["수출금액"].mean()
-    im_ratio = year.groupby("부명약칭")["수입금액"].mean()
+    ex_chap = year.groupby("부명약칭")["수출금액"].mean()
+    im_chap = year.groupby("부명약칭")["수입금액"].mean()
+    total = frame.groupby(["기간"], as_index=False)[["수출금액", "수입금액"]].sum()
+    ex_total = total["수출금액"].mean()
+    im_total = total["수입금액"].mean()
+    ex_ratio = ex_chap / ex_total * 100
+    im_ratio = im_chap / im_total * 100
 
     debug_print("\nExport Rank(2016~2025):")
-    debug_print(ex_ratio.nlargest(5).to_string())
+    debug_print(ex_ratio.sort_values(ascending=False).to_string())
     debug_print("\nImport Rank(2016~2025):")
-    debug_print(im_ratio.nlargest(5).to_string())
+    debug_print(im_ratio.sort_values(ascending=False).to_string())
 
     EX_GROUPS = ex_ratio.nlargest(4).index.tolist()
     IM_GROUPS = im_ratio.nlargest(4).index.tolist()
@@ -209,5 +217,9 @@ def plot_trade_diverging():
 
 
 if __name__ == "__main__":
-    balance_table()
+    yearly = yearly_balance(df, REGIONS)
+    periods = period_table(yearly, FOCUS)
+    print(yearly)
+    print("\n--무역수지 흐름---")
+    print(periods)
     plot_trade_diverging()

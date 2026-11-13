@@ -1,14 +1,19 @@
 """
 ====================================================================
 * Author: Minseo Kim
-* Data: data/processed/tradedata_dj_2020_2025.csv (관세청 무역통계)
-* Chart: exports above the axis, imports below, stacked by commodity group,
-  with the trade balance drawn on the same scale. Splitting these into two
-  charts hid the fact that the two sides are driven by different commodities.
-* Grouping: the two flows are collapsed into one shared set of four groups.
-  Ranking each side separately would put different commodities in the same
-  colour and make the panels uncomparable.
-* Output: output/02_trade_diverging.jpg
+* Data: data/processed/tradedata_2000_2025_4_added.csv (관세청 무역통계)
+* Chart: exports above the axis, imports below, stacked by commodity
+  section, with the yearly trade balance in a separate panel below.
+  Splitting exports and imports into two charts hid the fact that the
+  two sides are driven by different sections.
+* Grouping: top 4 sections per flow over the last 10 years, the rest as 기타.
+  Colours come from TRADE_DATA, so a section has the same colour on both
+  sides and in every chart.
+* Tables: the README balance table (핵심 결과 2) is built from the same data
+  in the same run, so the chart and the table cannot drift apart.
+* Output: output/TD_2_Daejeon_trade_diverging.png
+          output/TD_2_trade_balance_yearly.csv
+          output/TD_2_trade_balance_periods.csv
 ====================================================================
 """
 
@@ -24,17 +29,25 @@ SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
 sys.path.insert(0, str(SRC_DIR))
 from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
+from core.utils_trade_balance import period_table, yearly_balance, MILLION
 
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
+SAVE = "TD_2_Daejeon_trade_diverging.png"
 
-MILLION = 1_000  # source unit is thousand USD
+LABEL_MIN_SHARE = 0.15
+
+FOCUS = "대전광역시"
+REGIONS = FOCUS, "전국"
+THOUSAND_TO_MILLION = 1_000
+TOP_N = 4
+RANK_YEARS = 10
 LABEL_MIN_SHARE = 0.15
 
 use_korean_font()
 
 df = pd.read_csv(FILE_PATH)
-df = df[df["지역명"] == "대전광역시"].copy()  # Filter for Daejeon
+df = df[df["지역명"].eq(FOCUS)].copy()  # Filter for Daejeon
 
 DEBUG = True
 
@@ -49,32 +62,25 @@ balance = df.groupby("기간")["무역수지"].sum() / MILLION
 COLORS_BASIC = TRADE_DATA
 
 
-def balance_table() -> pd.DataFrame:
-    """Return the trade balance in million USD."""
-    balance_table = pd.DataFrame(
-        {
-            "연도": balance.index,
-            "무역수지": balance.values,
-        }
-    )
-    debug_print(f"\n무역수지 (백만 USD):")
-    debug_print(balance_table.to_string(index=False))
-    return balance_table
-
-
 def sections_check():
     """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
-    frame = df[df["기간"].gt(2015)]
+    start = df["기간"].max() - 9
+    frame = df[df["기간"].gt(start)]
     year = frame.groupby(["부명약칭", "기간"], as_index=False)[
-        ["수출비중", "수입비중"]
+        ["수출금액", "수입금액"]
     ].sum()
-    ex_ratio = year.groupby("부명약칭")["수출비중"].mean()
-    im_ratio = year.groupby("부명약칭")["수입비중"].mean()
+    ex_chap = year.groupby("부명약칭")["수출금액"].mean()
+    im_chap = year.groupby("부명약칭")["수입금액"].mean()
+    total = frame.groupby(["기간"], as_index=False)[["수출금액", "수입금액"]].sum()
+    ex_total = total["수출금액"].mean()
+    im_total = total["수입금액"].mean()
+    ex_ratio = ex_chap / ex_total * 100
+    im_ratio = im_chap / im_total * 100
 
     debug_print("\nExport Rank(2016~2025):")
-    debug_print(ex_ratio.nlargest(5).to_string())
+    debug_print(ex_ratio.sort_values(ascending=False).to_string())
     debug_print("\nImport Rank(2016~2025):")
-    debug_print(im_ratio.nlargest(5).to_string())
+    debug_print(im_ratio.sort_values(ascending=False).to_string())
 
     EX_GROUPS = ex_ratio.nlargest(4).index.tolist()
     IM_GROUPS = im_ratio.nlargest(4).index.tolist()
@@ -202,9 +208,13 @@ def plot_trade_diverging():
         fontsize=8,
         color="#7a848d",
     )
-    save(fig, "TD_2_Daejeon_trade_diverging.png")
+    save(fig, SAVE)
 
 
 if __name__ == "__main__":
-    balance_table()
+    yearly = yearly_balance(df, REGIONS)
+    periods = period_table(yearly, FOCUS)
+    print(yearly)
+    print("\n--무역수지 흐름---")
+    print(periods)
     plot_trade_diverging()

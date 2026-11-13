@@ -129,19 +129,28 @@ def plot_profile():
         layout="constrained",
     )
     axes[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
+    handles, labels = {}, {}
     for flow, ax in zip(("수출", "수입"), axes):
         x_col, y_col = f"대전내_{flow}비중", f"전국대비_{flow}"
         main = table[table[x_col].ge(MIN_WEIGHT)]
-        colors = main["부명약칭"].map(TRADE_DATA).fillna(TRADE_DATA["기타"])
-        ax.scatter(main[x_col], main[y_col], s=40, c=colors)
-        for xi, yi, section in zip(main[x_col], main[y_col], main["류명약칭"]):
-            ax.annotate(
-                section,
-                (xi, yi),
-                xytext=(3, 3),
-                textcoords="offset points",
-                fontsize=7,
+        for chapter, group in main.groupby("부명약칭"):
+            for h, l in zip(*ax.get_legend_handles_labels()):
+                handles.setdefault(l, h)
+            ax.scatter(
+                group[x_col],
+                group[y_col],
+                s=40,
+                color=TRADE_DATA.get(chapter, TRADE_DATA["기타"]),
+                label=chapter,
             )
+            for xi, yi, name in zip(group[x_col], group[y_col], group["류명약칭"]):
+                ax.annotate(
+                    name,
+                    (xi, yi),
+                    xytext=(3, 3),
+                    textcoords="offset points",
+                    fontsize=7,
+                )
 
         ax.set_title(flow, loc="left", fontsize=10, fontweight="bold")
         ax.set_xlabel(f"대전 {flow} 중 비중 (%)", fontsize=11)
@@ -163,9 +172,19 @@ def plot_profile():
             ha="center",
             va="bottom",
             color="red",
-            fontsize=5,
+            fontsize=10,
         )
 
+        plt.tight_layout(rect=[0, 0.03, 0.90, 0.95])  # reserve room on the right
+    fig.legend(
+        handles.values(),
+        handles.keys(),
+        loc="outside upper center",
+        ncol=5,
+        frameon=False,
+        fontsize=10,
+        bbox_to_anchor=(0.5, 0.94),
+    )
     fig.suptitle(
         f"대전광역시 류별 수출입의 지역 내 비중과 전국 대비 비중 ({start}~{df['기간'].max()} 누적)",
         fontsize=14,
