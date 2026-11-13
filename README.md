@@ -33,7 +33,7 @@
 | 광학, 정밀, 의료기기 | 7.6 | 3.7 | 3.9 | 10.3 | 4.1 | 2.1 |
 | 펄프 및 종이 제품 | 6.8 | 0.5 | 0.5 | – | – | – |
 | 수송기기 | 8.0 | 16.4 | 2.6 | 3.5 | 4.4 | 1.1 |
-
+![지역별 품목차이](TD_11_section_share_compare.png)
 충청권은 충남(세종 포함)과 충북의 금액을 합산한 뒤 비중을 다시 계산했다.
 
 - **기계 및 전기기기**는 대전에서도 최대 품목이지만, 반도체 중심인 충청권(67.2%)보다 비중이 훨씬 낮다. 대전은 전국이나 충청권에 비해 전기기기보다 **기계류** 비중이 높다(TD_6).
@@ -309,4 +309,18 @@ src/
   vs/            차트 스크립트
   *.py           파이프라인 단계
 ```
+
+- Daejeon city’s export
+	- weight : before 20 > after 20
+	- USD/kg : before 20 < after 20 - Covid19?
+	- covid term weight ↓(unit↑)
+	- usually import high value product
+	- and its export unit used to similar with nationals flow but it has gradually risen
+- monthly avg import / export value / weight
+	- export(value)
+		- low : 1 2 4 5 8 - 추석설날
+		- high : 3 6 10 11 12
+	- import(value)
+		- low : 2 9
+		- high : 5 10(추석?) 12
 

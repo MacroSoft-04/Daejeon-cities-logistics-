@@ -3,6 +3,7 @@
 Seasonal index for month m = (average of month m across years) / (region's overall monthly average) * 100.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -10,7 +11,17 @@ import pandas as pd
 from matplotlib import font_manager
 from matplotlib.lines import Line2D
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = SRC_DIR.parent
+sys.path.insert(0, str(SRC_DIR))
+from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
+from core.utils_regions import (
+    COMBINED_PARTS,
+    COMBINED,
+    ADJACENT_CONSISTENT,
+    SCALE_GROUP,
+)
+
 DATA_DIR = BASE_DIR / "data/processed"
 SAVE_DIR = BASE_DIR / "output"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -19,8 +30,13 @@ DATA_PATH = DATA_DIR / "kita_regional_monthly_4_added.csv"
 SAVE_PATH = SAVE_DIR / "KITA_monthly_1_Daejeon_region_seasonal_index.jpg"
 
 FOCUS_REGION = "대전"
-BENCHMARK_REGION = "전국"
-FOCUS_COLOR, BENCHMARK_COLOR = "#c0392b", "#666666"
+NATIONAL = "전국"
+
+COLOR = {
+    FOCUS_REGION: PALETTE["accent"],
+    NATIONAL: PALETTE["basic"],
+    "neighbor": PALETTE["1"],
+}
 PEER_COLOR, LABEL_COLOR = "#cfcfcf", "#888888"
 
 FLOWS = {
@@ -30,10 +46,7 @@ FLOWS = {
 METRICS = ["액", "중량", "단가"]
 
 
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams["font.family"] = "sans-serif"
-plt.rcParams["font.sans-serif"] = ["Malgun Gothic", "AppleGothic", "NanumGothic"]
-plt.rcParams["axes.unicode_minus"] = False
+use_korean_font()
 
 
 def load_data(path: Path) -> pd.DataFrame:
@@ -47,9 +60,8 @@ def load_data(path: Path) -> pd.DataFrame:
     late_regions = region_start[region_start > first_year].index.tolist()
     if late_regions:
         print(f"Excluded (series starts after {first_year}): {', '.join(late_regions)}")
-    df = df[~df["지역명"].isin(late_regions)].copy()
     df = df[
-        ~df["지역명"].isin(["충남", "세종"])
+        ~df["지역명"].isin(COMBINED_PARTS)
     ].copy()  # Exclude Chungnam and Sejong for consistency.
 
     # Keep only years with all 12 months for every region: a partial year would add an
@@ -94,17 +106,20 @@ def plot_panel(
 ) -> None:
     months = index_df.index
     ax.axhline(100, color="black", linewidth=0.8, alpha=0.4)
+    peers = SCALE_GROUP
 
     for region in peers:
         ax.plot(months, index_df[region], color=PEER_COLOR, linewidth=1.2)
+    for region in ADJACENT_CONSISTENT:
+        ax.plot(months, index_df[region], color=COLOR["neighbor"], linewidth=1.2)
     ax.plot(
         months,
-        index_df[BENCHMARK_REGION],
-        color=BENCHMARK_COLOR,
+        index_df[NATIONAL],
+        color=COLOR[NATIONAL],
         linewidth=2.2,
         linestyle="--",
     )
-    ax.plot(months, index_df[FOCUS_REGION], color=FOCUS_COLOR, linewidth=3)
+    ax.plot(months, index_df[FOCUS_REGION], color=COLOR[FOCUS_REGION], linewidth=3)
 
     y_min, y_max = index_df.min().min(), index_df.max().max()
     pad = (y_max - y_min) * 0.08
@@ -139,7 +154,7 @@ def plot_panel(
 def main() -> None:
     df = load_data(DATA_PATH)
     first_year, last_year = df["연도"].min(), df["연도"].max()
-    peers = sorted(set(df["지역명"]) - {FOCUS_REGION, BENCHMARK_REGION})
+    peers = sorted(set(df["지역명"]) - {FOCUS_REGION, NATIONAL})
     panels = seasonal_indices(df)
 
     print(
@@ -148,13 +163,14 @@ def main() -> None:
     print(f"Peer regions: {', '.join(peers)}")
     for name, frame in panels.items():
         print(f"\n[{name}] seasonal index")
-        print(frame[[FOCUS_REGION, BENCHMARK_REGION, *peers]].round(1).to_string())
+        print(frame[[FOCUS_REGION, NATIONAL, *peers]].round(1).to_string())
 
-    fig, axes = plt.subplots(len(METRICS), len(FLOWS), figsize=(16, 17), sharex=True)
+    fig, axes = plt.subplots(len(METRICS), len(FLOWS), figsize=(16, 17), sharex=False)
     for row, metric in enumerate(METRICS):
         for col, flow in enumerate(FLOWS):
             name = f"{flow}{metric}"
             plot_panel(axes[row, col], panels[name], peers, name)
+            plot_panel(axes[row, col], panels[name], ADJACENT_CONSISTENT, name)
             axes[row, col].set_ylabel("계절지수 (월평균=100)")
 
     fig.suptitle(
@@ -164,13 +180,14 @@ def main() -> None:
         y=0.995,
     )
     handles = [
-        Line2D([], [], color=FOCUS_COLOR, linewidth=3),
-        Line2D([], [], color=BENCHMARK_COLOR, linewidth=2.2, linestyle="--"),
+        Line2D([], [], color=COLOR[FOCUS_REGION], linewidth=3),
+        Line2D([], [], color=COLOR[NATIONAL], linewidth=2.2, linestyle="--"),
+        Line2D([], [], color=COLOR["neighbor"], linewidth=1.2),
         Line2D([], [], color=PEER_COLOR, linewidth=1.2),
     ]
     fig.legend(
         handles,
-        [FOCUS_REGION, BENCHMARK_REGION, "기타 시도"],
+        [FOCUS_REGION, NATIONAL, ADJACENT_CONSISTENT, "기타 시도"],
         loc="upper center",
         ncol=3,
         frameon=False,

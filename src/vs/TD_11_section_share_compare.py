@@ -30,7 +30,7 @@ from core.utils_chart import PALETTE, TRADE_DATA, save, use_korean_font
 data_dir = BASE_DIR / "data" / "processed"
 FILE_PATH = data_dir / "tradedata_2000_2025_4_added.csv"
 
-MILLION = 1_000  # source unit is thousand USD
+MILLION = 1_000
 LABEL_MIN_SHARE = 15
 
 REGION = ["대전광역시", "전국", "충청남도(세종특별자치시 포함)", "충청북도"]

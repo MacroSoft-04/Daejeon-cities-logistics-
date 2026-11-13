@@ -39,7 +39,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from core.regions import SIDO_SHORT
+from core.utils_regions import SIDO_SHORT
 
 base_dir = Path(".")
 data_dir = base_dir / "data/processed"

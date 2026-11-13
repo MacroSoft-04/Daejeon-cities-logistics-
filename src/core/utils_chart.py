@@ -31,6 +31,7 @@ PALETTE = {
     "positive": "#2b7a5c",
     "negative": "#c0563f",
     "text": "#2c3e50",
+    "basic": "#666666",
     "1": "#6F8FAF",
     "2": "#40B5AD",
     "3": "#9FE2BF",
@@ -99,9 +100,6 @@ DEVICE_FOOD = {
     "광학_정밀의료기기": PALETTE["4"],
     "기타": PALETTE["muted"],
 }
-
-# core/trade_combine.py
-import pandas as pd
 
 HS_KEYS = ["기간", "부코드", "부명약칭", "류코드", "류명약칭"]
 SUM_COLUMNS = ["수출건수", "수출금액", "수입건수", "수입금액", "무역수지"]
