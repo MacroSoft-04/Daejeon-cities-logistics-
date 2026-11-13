@@ -38,7 +38,7 @@ REGION = ["대전광역시", "전국", "충청남도(세종특별자치시 포�
 COLORS = {
     "대전광역시": PALETTE["primary"],
     "전국": PALETTE["muted"],
-    "충청남도(세종특별자치시 포함)": PALETTE["1"],
+    "충청남도(세종특별자치시 포함)": PALETTE["3"],
     "충청북도": PALETTE["2"],
 }
 
