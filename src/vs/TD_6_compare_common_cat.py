@@ -109,7 +109,7 @@ def plot_regions():
         len(TARGET),
         1,
         figsize=(12, 3.2 * len(TARGET)),
-        sharex=True,
+        sharex=False,
         sharey=True,
         layout="constrained",
     )

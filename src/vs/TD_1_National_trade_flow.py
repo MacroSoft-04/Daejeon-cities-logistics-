@@ -63,7 +63,8 @@ def balance_table() -> pd.DataFrame:
 
 def sections_check():
     """Find the top commodity groups over the past 10 years based on average sectional import and export values."""
-    frame = df[df["기간"].gt(2015)]
+    start = df["기간"].max() - 9
+    frame = df[df["기간"].ge(start)]
     year = frame.groupby(["부명약칭", "기간"], as_index=False)[
         ["수출금액", "수입금액"]
     ].sum()

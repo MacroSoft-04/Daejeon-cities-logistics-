@@ -18,6 +18,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib.ticker as ticker
 
 SRC_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = SRC_DIR.parent
@@ -127,12 +128,11 @@ def plot_profile():
         figsize=(17, 6),
         layout="constrained",
     )
+    axes[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
     for flow, ax in zip(("수출", "수입"), axes):
         x_col, y_col = f"대전내_{flow}비중", f"전국대비_{flow}"
         main = table[table[x_col].ge(MIN_WEIGHT)]
         colors = main["부명약칭"].map(TRADE_DATA).fillna(TRADE_DATA["기타"])
-        ax.scatter(main[x_col], main[y_col], s=40, color=colors, zorder=3)
-
         ax.scatter(main[x_col], main[y_col], s=40, c=colors)
         for xi, yi, section in zip(main[x_col], main[y_col], main["류명약칭"]):
             ax.annotate(
