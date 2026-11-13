@@ -125,8 +125,10 @@ def plot_panel(
     pad = (y_max - y_min) * 0.08
     ax.set_ylim(y_min - pad, y_max + pad)
 
+    labelled = peers + ADJACENT_CONSISTENT
+
     label_y = spread_labels(
-        index_df.loc[months.max(), peers],
+        index_df.loc[months.max(), labelled],
         min_gap=(y_max - y_min) * 0.055,
         upper=y_max + pad,
     )
@@ -170,7 +172,6 @@ def main() -> None:
         for col, flow in enumerate(FLOWS):
             name = f"{flow}{metric}"
             plot_panel(axes[row, col], panels[name], peers, name)
-            plot_panel(axes[row, col], panels[name], ADJACENT_CONSISTENT, name)
             axes[row, col].set_ylabel("계절지수 (월평균=100)")
 
     fig.suptitle(
@@ -187,9 +188,9 @@ def main() -> None:
     ]
     fig.legend(
         handles,
-        [FOCUS_REGION, NATIONAL, ADJACENT_CONSISTENT, "기타 시도"],
+        [FOCUS_REGION, NATIONAL, "인접 충청 (충남·충북)", "비슷한 규모 광역시"],
         loc="upper center",
-        ncol=3,
+        ncol=4,
         frameon=False,
         fontsize=13,
         bbox_to_anchor=(0.5, 0.975),
